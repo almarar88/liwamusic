@@ -1,0 +1,116 @@
+name: بناء LiwaMusic للأندرويد (APK)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "وسم الإصدار الذي سيُنشر (مثال android-v1.1.0)"
+        required: true
+        default: "android-v1.1.0"
+  push:
+    tags:
+      - "android-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - name: تثبيت الاعتماديات
+        run: npm install --no-audit --no-fund
+
+      - name: فحص واجهة الهاتف
+        run: node scripts/selftest.mjs
+
+      - name: توليد مشروع أندرويد
+        run: npx cap add android
+
+      - name: مزامنة ملفات الويب
+        run: npx cap sync android
+
+      - name: تهيئة المشروع (رابط عميق، اسم، إصدار)
+        run: node scripts/patch-android.mjs android
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+
+      - name: توليد الأيقونات
+        run: python3 scripts/make-icons.py android/app/src/main/res
+
+      - name: بناء APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: توقيع APK
+        run: |
+          set -e
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          echo "أدوات البناء: $BT"
+          UNSIGNED=$(find android/app/build/outputs/apk/release -name "*.apk" | head -1)
+          echo "غير موقّع: $UNSIGNED"
+          # مفتاح من سرّ المستودع إن وُجد، وإلا المفتاح الثابت المرفق
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_B64 }}" ]; then
+            echo "${{ secrets.ANDROID_KEYSTORE_B64 }}" | base64 -d > /tmp/ks.jks
+            KS=/tmp/ks.jks
+            KS_PASS="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
+            KS_ALIAS="${{ secrets.ANDROID_KEY_ALIAS }}"
+          else
+            KS=signing/liwamusic.jks
+            KS_PASS=liwamusic
+            KS_ALIAS=liwamusic
+          fi
+          "$BT/zipalign" -p -f 4 "$UNSIGNED" LiwaMusic.apk
+          "$BT/apksigner" sign --ks "$KS" --ks-pass "pass:$KS_PASS" --ks-key-alias "$KS_ALIAS" \
+            --key-pass "pass:$KS_PASS" --out LiwaMusic-${{ github.event.inputs.tag || github.ref_name }}.apk LiwaMusic.apk
+          "$BT/apksigner" verify --print-certs "LiwaMusic-${{ github.event.inputs.tag || github.ref_name }}.apk"
+          mv "LiwaMusic-${{ github.event.inputs.tag || github.ref_name }}.apk" LiwaMusic.apk
+          ls -la LiwaMusic.apk
+
+      - name: رفع الـ APK كمُخرَج
+        uses: actions/upload-artifact@v4
+        with:
+          name: LiwaMusic-APK
+          path: mobile/LiwaMusic.apk
+          if-no-files-found: error
+
+      - name: نشر الإصدار
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: LiwaMusic للأندرويد ${{ github.event.inputs.tag || github.ref_name }}
+          files: mobile/LiwaMusic.apk
+          body: |
+            ## LiwaMusic للأندرويد — مشغّل مكتبتك من Google Drive
+
+            نزّل `LiwaMusic.apk` وثبّته على هاتفك (سيطلب السماح بالتثبيت من مصدر
+            غير معروف — هذا طبيعي للتطبيقات خارج متجر Play).
+
+            **الإعداد أول مرة:** أنشئ معرّف OAuth من نوع **Android** في Google Cloud
+            Console باسم الحزمة `com.liwamusic.app` وبصمة SHA-1 المذكورة في دليل
+            المشروع، ثم ألصق المعرّف في التطبيق وسجّل الدخول واختر مجلد أغانيك.
+
+            التقييمات والمفضلة وقوائم التشغيل تتزامن تلقائيًا مع نسخة الكمبيوتر
+            عبر مجلد التطبيق المخفي في درايف.
+
+            ---
+            تم إنشاؤه عن طريق **LiwaMusic**

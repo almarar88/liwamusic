@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+<meta name="color-scheme" content="dark" />
+<meta name="theme-color" content="#0b0b12" />
+<title>LiwaMusic</title>
+<link rel="stylesheet" href="css/m.css" />
+</head>
+<body>
+
+<!-- الشاشات -->
+<main id="screens">
+
+  <!-- تسجيل الدخول / الإعداد -->
+  <section class="screen" id="scrSetup">
+    <div class="setup">
+      <div class="logo">♫</div>
+      <h1>LiwaMusic</h1>
+      <p class="muted">شغّل مكتبتك من Google Drive على هاتفك، بنفس التقييمات والقوائم المزامنة مع الكمبيوتر.</p>
+
+      <div class="card" id="stepClient">
+        <h3>1 · معرّف عميل أندرويد</h3>
+        <p class="muted sm">أنشئ في Google Cloud Console معرّف OAuth من نوع <b>Android</b> باسم الحزمة <code>com.liwamusic.app</code> وبصمة SHA-1 الموجودة في دليل المشروع، ثم ألصق المعرّف هنا.</p>
+        <input id="clientId" type="text" inputmode="url" placeholder="…apps.googleusercontent.com" autocomplete="off" />
+        <button class="btn primary" id="saveClient">حفظ</button>
+      </div>
+
+      <div class="card" id="stepConnect" hidden>
+        <h3>2 · اربط حسابك</h3>
+        <p class="muted sm">صلاحيات القراءة فقط، ومجلد صغير خاص بالتطبيق للمزامنة.</p>
+        <button class="btn primary big" id="btnConnect">تسجيل الدخول بجوجل</button>
+        <button class="btn ghost" id="btnChangeClient">تغيير المعرّف</button>
+      </div>
+
+      <div class="card" id="stepFolder" hidden>
+        <h3>3 · اختر مجلد الأغاني</h3>
+        <p class="muted sm" id="accLine"></p>
+        <button class="btn primary big" id="btnPickFolder">تصفّح درايف</button>
+      </div>
+      <p class="made">تم إنشاؤه عن طريق <b>LiwaMusic</b></p>
+    </div>
+  </section>
+
+  <!-- المكتبة -->
+  <section class="screen" id="scrLibrary" hidden>
+    <header class="top">
+      <div class="top-row">
+        <h2 id="libTitle">المكتبة</h2>
+        <button class="icon" id="btnSync" title="مزامنة">⟳</button>
+      </div>
+      <div class="search"><input id="q" type="search" placeholder="ابحث…" /></div>
+      <div class="chips" id="libChips"></div>
+    </header>
+    <div class="list" id="trackList"></div>
+  </section>
+
+  <!-- الألبومات -->
+  <section class="screen" id="scrAlbums" hidden>
+    <header class="top"><div class="top-row"><h2>الألبومات</h2></div></header>
+    <div class="grid" id="albumGrid"></div>
+  </section>
+
+  <!-- المفضلة -->
+  <section class="screen" id="scrFav" hidden>
+    <header class="top"><div class="top-row"><h2>المفضلة</h2></div></header>
+    <div class="list" id="favList"></div>
+  </section>
+
+  <!-- الإعدادات -->
+  <section class="screen" id="scrSettings" hidden>
+    <header class="top"><div class="top-row"><h2>الإعدادات</h2></div></header>
+    <div class="settings" id="settingsBody"></div>
+  </section>
+</main>
+
+<!-- المشغّل المصغّر -->
+<div class="mini" id="mini" hidden>
+  <div class="mini-bar" id="miniBar"></div>
+  <div class="mini-row">
+    <div class="mini-art" id="miniArt">♪</div>
+    <div class="mini-meta">
+      <div class="mini-title" id="miniTitle">—</div>
+      <div class="mini-sub muted" id="miniSub">—</div>
+    </div>
+    <button class="icon big" id="miniPlay">▶</button>
+    <button class="icon" id="miniNext">⏭</button>
+  </div>
+</div>
+
+<!-- شاشة التشغيل الكاملة -->
+<section class="player" id="player" hidden>
+  <div class="p-head">
+    <button class="icon" id="pClose">▾</button>
+    <span class="p-from" id="pFrom">من Google Drive</span>
+    <button class="icon" id="pMenu">⋯</button>
+  </div>
+  <div class="p-art" id="pArt"><span>♪</span></div>
+  <div class="p-meta">
+    <h2 id="pTitle">—</h2>
+    <p class="muted" id="pArtist">—</p>
+  </div>
+  <div class="p-stars" id="pStars"></div>
+  <div class="p-seek">
+    <input type="range" id="pSeek" min="0" max="1000" value="0" />
+    <div class="p-times"><span id="pCur">0:00</span><span id="pDur">0:00</span></div>
+  </div>
+  <div class="p-controls">
+    <button class="icon" id="pShuffle"><svg viewBox="0 0 24 24" width="19" height="19"><path d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7M16 21h5v-5M21 21l-7-7M3 3h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+    <button class="icon big" id="pPrev">⏮</button>
+    <button class="play" id="pPlay">▶</button>
+    <button class="icon big" id="pNext">⏭</button>
+    <button class="icon" id="pRepeat"><svg viewBox="0 0 24 24" width="19" height="19"><path d="M17 2l4 4-4 4M3 11V9a4 4 0 014-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 01-4 4H3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><b class="rep-1" hidden>1</b></button>
+  </div>
+  <div class="p-extra">
+    <button class="icon" id="pFav" title="مفضلة">♡</button>
+    <button class="icon" id="pOffline" title="حفظ للاستماع دون إنترنت">⤓</button>
+    <button class="icon" id="pSleep" title="مؤقت النوم">☾</button>
+    <button class="icon" id="pSpeed" title="السرعة">1×</button>
+  </div>
+</section>
+
+<!-- التنقّل السفلي -->
+<nav class="tabs" id="tabs" hidden>
+  <button data-tab="library" class="on"><span>♪</span>المكتبة</button>
+  <button data-tab="albums"><span>▦</span>الألبومات</button>
+  <button data-tab="fav"><span>♥</span>المفضلة</button>
+  <button data-tab="settings"><span>⚙</span>الإعدادات</button>
+</nav>
+
+<!-- طبقات -->
+<div class="sheet-root" id="sheetRoot" hidden></div>
+<div class="toasts" id="toasts"></div>
+<div class="loading" id="loading" hidden><div class="spin"></div><span id="loadingText">…</span></div>
+
+<audio id="audio" preload="auto"></audio>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

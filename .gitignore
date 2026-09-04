@@ -3,3 +3,6 @@ release/
 dist/
 *.local
 .DS_Store
+mobile/node_modules/
+mobile/android/
+mobile/*.apk
