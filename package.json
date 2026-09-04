@@ -1,0 +1,31 @@
+{
+  "name": "liwamusic",
+  "productName": "LiwaMusic",
+  "version": "1.0.0",
+  "description": "LiwaMusic — مشغل وفهرس موسيقى ذكي لويندوز · تم إنشاؤه عن طريق LiwaMusic",
+  "author": {
+    "name": "LiwaMusic",
+    "url": "https://github.com/almarar88/mbzuh"
+  },
+  "license": "MIT",
+  "private": true,
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node scripts/selftest.mjs",
+    "dist:win": "electron-builder --win --x64 --publish never",
+    "dist:dir": "electron-builder --win --x64 --dir --publish never"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.0",
+    "music-metadata": "^11.9.0"
+  },
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.12"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/almarar88/mbzuh.git"
+  }
+}

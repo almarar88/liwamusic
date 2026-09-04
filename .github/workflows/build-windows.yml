@@ -1,0 +1,66 @@
+name: بناء LiwaMusic لويندوز
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "وسم الإصدار الذي سيُنشر (مثال v1.0.0)"
+        required: true
+        default: "v1.0.0"
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  windows-installer:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: تثبيت الاعتماديات
+        run: npm install --no-audit --no-fund
+
+      - name: الاختبار الذاتي
+        run: npm test
+
+      - name: بناء ملف التثبيت
+        run: npm run dist:win
+
+      - name: رفع ملف التثبيت كمُخرَج
+        uses: actions/upload-artifact@v4
+        with:
+          name: LiwaMusic-Setup-Windows
+          path: release/LiwaMusic-Setup-*.exe
+          if-no-files-found: error
+
+      - name: نشر الإصدار
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: LiwaMusic ${{ github.event.inputs.tag || github.ref_name }}
+          files: release/LiwaMusic-Setup-*.exe
+          body: |
+            ## LiwaMusic — مشغل وفهرس موسيقى ذكي لويندوز
+
+            ملف تثبيت لويندوز (64-بت). نزّل `LiwaMusic-Setup-1.0.0.exe` وشغّله
+            واتبع خطوات التثبيت (يُثبَّت للمستخدم الحالي بلا صلاحيات مدير).
+
+            أضف مجلد أغانيك ليبدأ الفهرسة: قراءة الوسوم، استخراج الأغلفة،
+            وجلب الأغلفة والكلمات الناقصة من الإنترنت.
+
+            ميزات الذكاء الاصطناعي **مغلقة افتراضيًا** (تحتاج مفتاح API مدفوعًا)،
+            ويمكن تفعيلها لاحقًا من: الإعدادات ← الميزات الذكية.
+
+            > قد يُظهر ويندوز تنبيه SmartScreen لأن الملف غير موقّع رقميًا —
+            > اختر «مزيد من المعلومات» ثم «تشغيل على أي حال».
+
+            ---
+            تم إنشاؤه عن طريق **LiwaMusic**

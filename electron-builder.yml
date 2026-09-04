@@ -1,0 +1,44 @@
+appId: com.liwamusic.player
+productName: LiwaMusic
+copyright: © LiwaMusic — تم إنشاؤه عن طريق LiwaMusic
+directories:
+  output: release
+  buildResources: build
+files:
+  - electron/**
+  - renderer/**
+  - package.json
+  - "!**/*.map"
+  - "!**/test/**"
+  - "!**/*.md"
+win:
+  icon: build/icon.png
+  target:
+    - target: nsis
+      arch: [x64]
+  artifactName: LiwaMusic-${version}-win-${arch}.${ext}
+  executableName: LiwaMusic
+nsis:
+  artifactName: LiwaMusic-Setup-${version}.${ext}
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: LiwaMusic
+  installerLanguages: [ar_SA, en_US]
+  language: 1025
+  deleteAppDataOnUninstall: false
+fileAssociations:
+  - ext: mp3
+    name: MP3 Audio
+    role: Viewer
+  - ext: flac
+    name: FLAC Audio
+    role: Viewer
+  - ext: m4a
+    name: M4A Audio
+    role: Viewer
+  - ext: m3u8
+    name: LiwaMusic Playlist
+    role: Viewer

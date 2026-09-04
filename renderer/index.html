@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' liwa: data: blob:; media-src liwa: blob:; font-src 'self'; connect-src 'self' liwa:;" />
+<title>LiwaMusic</title>
+<link rel="stylesheet" href="css/app.css" />
+</head>
+<body class="theme-dark accent-violet">
+
+<!-- شريط العنوان المخصص -->
+<header class="titlebar" id="titlebar">
+  <div class="tb-left drag">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 3v10.6A4 4 0 1 0 14 17V7h5V3z" fill="currentColor"/></svg>
+      </span>
+      <span class="brand-name">Liwa<b>Music</b></span>
+    </div>
+    <div class="tb-crumb" id="tbCrumb"></div>
+  </div>
+
+  <div class="tb-center no-drag">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" width="16" height="16" class="s-ico"><path d="M10 4a6 6 0 104.47 10.03l4.25 4.25 1.41-1.41-4.25-4.25A6 6 0 0010 4zm0 2a4 4 0 110 8 4 4 0 010-8z" fill="currentColor"/></svg>
+      <input id="search" type="search" placeholder="ابحث في المكتبة…" autocomplete="off" spellcheck="false" />
+      <button class="btn-ghost sm" id="aiSearchBtn" title="بحث ذكي بلغة طبيعية">
+        <svg viewBox="0 0 24 24" width="15" height="15"><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9L12 2zm6 12l.9 2.4L21 17l-2.1.6L18 20l-.9-2.4L15 17l2.1-.6L18 14z" fill="currentColor"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="tb-right no-drag">
+    <span class="net-dot" id="netDot" title="حالة الإنترنت"></span>
+    <button class="tb-btn" id="btnMini" title="المشغل المصغّر">
+      <svg viewBox="0 0 24 24" width="14" height="14"><path d="M4 14h7v6H4zM4 4h16v8H4z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+    </button>
+    <button class="tb-btn" id="btnMin" title="تصغير"><svg viewBox="0 0 12 12" width="12" height="12"><rect x="2" y="5.5" width="8" height="1" fill="currentColor"/></svg></button>
+    <button class="tb-btn" id="btnMax" title="تكبير"><svg viewBox="0 0 12 12" width="12" height="12"><rect x="2.5" y="2.5" width="7" height="7" fill="none" stroke="currentColor"/></svg></button>
+    <button class="tb-btn danger" id="btnClose" title="إغلاق"><svg viewBox="0 0 12 12" width="12" height="12"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.3"/></svg></button>
+  </div>
+</header>
+
+<div class="shell" id="shell">
+  <!-- الشريط الجانبي -->
+  <aside class="sidebar" id="sidebar">
+    <nav class="nav" id="nav"></nav>
+
+    <div class="side-block">
+      <div class="side-head">
+        <span>قوائم التشغيل</span>
+        <button class="btn-ghost xs" id="btnNewPlaylist" title="قائمة جديدة">+</button>
+      </div>
+      <div class="side-list" id="playlistList"></div>
+    </div>
+
+    <div class="side-block">
+      <div class="side-head">
+        <span>المجلدات</span>
+        <button class="btn-ghost xs" id="btnAddFolder" title="إضافة مجلد">+</button>
+      </div>
+      <div class="side-list" id="folderList"></div>
+    </div>
+
+    <div class="side-foot">
+      <button class="btn primary block" id="btnAiPlaylist">
+        <svg viewBox="0 0 24 24" width="15" height="15"><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9L12 2z" fill="currentColor"/></svg>
+        <span>قائمة ذكية</span>
+      </button>
+      <div class="made-by">تم إنشاؤه عن طريق <b>LiwaMusic</b></div>
+    </div>
+  </aside>
+
+  <!-- المحتوى -->
+  <main class="content vl-scroll" id="content">
+    <div id="view"></div>
+  </main>
+
+  <!-- اللوحة الجانبية -->
+  <aside class="rightpanel" id="rightpanel">
+    <div class="rp-tabs" id="rpTabs">
+      <button data-rp="now" class="active">الآن</button>
+      <button data-rp="lyrics">الكلمات</button>
+      <button data-rp="queue">الطابور</button>
+      <button data-rp="info">معلومات</button>
+    </div>
+    <div class="rp-body" id="rpBody"></div>
+  </aside>
+</div>
+
+<!-- المشغل -->
+<footer class="player" id="player">
+  <div class="seek-row">
+    <span class="time" id="timeCur">0:00</span>
+    <div class="seek" id="seek"><div class="seek-buf"></div><div class="seek-fill" id="seekFill"></div><div class="seek-knob" id="seekKnob"></div></div>
+    <span class="time" id="timeDur">0:00</span>
+  </div>
+
+  <div class="player-row">
+    <div class="np" id="np">
+      <div class="np-art" id="npArt"><div class="np-art-ph">♪</div></div>
+      <div class="np-meta">
+        <div class="np-title" id="npTitle">لا يوجد تشغيل</div>
+        <div class="np-artist" id="npArtist">أضف مجلد أغانيك للبدء</div>
+      </div>
+      <button class="icon-btn heart" id="btnFav" title="مفضلة (F)">
+        <svg viewBox="0 0 24 24" width="17" height="17"><path d="M12 21s-7-4.5-9.3-8.4C.7 9.3 2.4 5.5 6 5.5c2 0 3.3 1.1 4 2.2.7-1.1 2-2.2 4-2.2 3.6 0 5.3 3.8 3.3 7.1C19 16.5 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+      </button>
+      <div class="stars" id="stars" title="التقييم"></div>
+    </div>
+
+    <div class="controls">
+      <button class="icon-btn" id="btnShuffle" title="خلط (S)">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7M16 21h5v-5M21 21l-7-7M3 3h5" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+      </button>
+      <button class="icon-btn" id="btnPrev" title="السابق (Ctrl+←)">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M18 5v14L8 12zM6 5h2v14H6z" fill="currentColor"/></svg>
+      </button>
+      <button class="play-btn" id="btnPlay" title="تشغيل/إيقاف (مسافة)">
+        <svg id="playIcon" viewBox="0 0 24 24" width="22" height="22"><path d="M7 4l13 8-13 8z" fill="currentColor"/></svg>
+      </button>
+      <button class="icon-btn" id="btnNext" title="التالي (Ctrl+→)">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 5v14l10-7zM16 5h2v14h-2z" fill="currentColor"/></svg>
+      </button>
+      <button class="icon-btn" id="btnRepeat" title="التكرار (R)">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M17 2l4 4-4 4M3 11V9a4 4 0 014-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 01-4 4H3" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+        <span class="badge" id="repeatBadge"></span>
+      </button>
+    </div>
+
+    <div class="right-controls">
+      <canvas id="viz" class="viz" width="220" height="34" title="المؤثر البصري"></canvas>
+      <button class="icon-btn" id="btnEq" title="المعادل الصوتي (E)">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 20V10M6 7V4M12 20v-6M12 11V4M18 20v-9M18 8V4" stroke="currentColor" stroke-width="1.8" fill="none"/><circle cx="6" cy="8.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12.5" r="1.6" fill="currentColor"/><circle cx="18" cy="9.5" r="1.6" fill="currentColor"/></svg>
+      </button>
+      <button class="icon-btn" id="btnSleep" title="مؤقت النوم">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M20 14A8 8 0 019.5 3.5 8.5 8.5 0 1020 14z" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+      </button>
+      <div class="vol">
+        <button class="icon-btn" id="btnMute" title="كتم (M)">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 9h4l5-4v14l-5-4H4zM16 9a4 4 0 010 6" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+        </button>
+        <input type="range" id="volume" min="0" max="1" step="0.01" value="0.9" />
+      </div>
+      <button class="icon-btn" id="btnPanel" title="إظهار/إخفاء اللوحة">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 4h16v16H4zM15 4v16" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+      </button>
+    </div>
+  </div>
+</footer>
+
+<!-- طبقات علوية -->
+<div class="modal-root" id="modalRoot" hidden></div>
+<div class="ctx-root" id="ctxRoot" hidden></div>
+<div class="toasts" id="toasts"></div>
+<div class="drop-veil" id="dropVeil" hidden><div>أفلت المجلد هنا لفهرسته</div></div>
+
+<audio id="deckA" preload="auto" crossorigin="anonymous"></audio>
+<audio id="deckB" preload="auto" crossorigin="anonymous"></audio>
+
+<script src="js/util.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/player.js"></script>
+<script src="js/views.js"></script>
+<script src="js/panels.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
