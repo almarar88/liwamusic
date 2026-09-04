@@ -15,9 +15,10 @@
 
 [![آخر إصدار](https://img.shields.io/github/v/release/almarar88/liwamusic?label=%D8%A2%D8%AE%D8%B1%20%D8%A5%D8%B5%D8%AF%D8%A7%D8%B1&color=7c5cff)](https://github.com/almarar88/liwamusic/releases/latest)
 
-### **[⬇ تحميل LiwaMusic لويندوز (64-بت)](https://github.com/almarar88/liwamusic/releases/latest/download/LiwaMusic-Setup-1.0.0.exe)**
+### **[⬇ تحميل LiwaMusic 1.0.0 لويندوز (64-بت)](https://github.com/almarar88/liwamusic/releases/download/v1.0.0/LiwaMusic-Setup-1.0.0.exe)**
 
-أو من [صفحة الإصدارات](https://github.com/almarar88/liwamusic/releases/latest) لاختيار إصدار محدد.
+`LiwaMusic-Setup-1.0.0.exe` · ‎90 ميجابايت · ويندوز 10/11 (x64)
+· [آخر إصدار دائمًا](https://github.com/almarar88/liwamusic/releases/latest)
 
 بعد التنزيل: شغّل `LiwaMusic-Setup-1.0.0.exe` واتبع خطوات التثبيت (يُثبَّت
 للمستخدم الحالي بلا صلاحيات مدير)، ثم افتح **LiwaMusic** من قائمة ابدأ أو من
