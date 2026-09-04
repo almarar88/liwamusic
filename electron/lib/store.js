@@ -16,10 +16,13 @@ const DEFAULTS = {
     playCount: {},   // id -> number
     lastPlayed: {},  // id -> ms
     ai: {},          // id -> { mood, energy, genres[], tags[], summary, at }
-    overrides: {},   // id -> { title, artist, album, genre, year }
+    overrides: {},   // id -> { title, artist, album, genre, year, at }
+    artOverrides: {},// id -> { art, at }  غلاف مخصّص يتقدّم على المضمّن
+    favAt: {},       // id -> ms  (طوابع للمزامنة)
+    ratedAt: {},     // id -> ms
     history: [],     // [{ id, at }] الأحدث أولاً
   },
-  'playlists.json': { version: 1, items: [] }, // [{id,name,description,tracks[],createdAt,updatedAt,ai}]
+  'playlists.json': { version: 1, items: [], deleted: {} }, // [{id,name,description,tracks[],createdAt,updatedAt,ai}]
   'settings.json': {
     version: 1,
     lang: 'ar',
@@ -43,6 +46,12 @@ const DEFAULTS = {
     onlineMeta: false,
     watchFolders: true,
     sleepMinutes: 0,
+    // Google Drive
+    driveFolders: [],        // [{id, name}]
+    driveSync: true,         // مزامنة المكتبة والتقييمات عبر ملف مخفي في درايف
+    syncMinutes: 15,
+    lastSyncAt: 0,
+    drivePrefetch: true,     // تحميل الأغنية التالية مسبقًا عند التشغيل من درايف
     aiEnabled: false,        // مغلق افتراضيًا — يتطلب مفتاح API مدفوع
     aiModel: 'claude-opus-5',
     aiKeySet: false,

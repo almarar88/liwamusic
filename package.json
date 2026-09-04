@@ -1,8 +1,8 @@
 {
   "name": "liwamusic",
   "productName": "LiwaMusic",
-  "version": "1.0.0",
-  "description": "LiwaMusic — مشغل وفهرس موسيقى ذكي لويندوز · تم إنشاؤه عن طريق LiwaMusic",
+  "version": "1.1.0",
+  "description": "LiwaMusic — مشغل وفهرس موسيقى ذكي لويندوز مع Google Drive · تم إنشاؤه عن طريق LiwaMusic",
   "author": {
     "name": "LiwaMusic",
     "url": "https://github.com/almarar88/mbzuh"

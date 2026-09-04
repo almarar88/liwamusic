@@ -19,6 +19,9 @@ const playlists = require(path.join(root, 'electron/lib/playlists.js'));
 const filestream = require(path.join(root, 'electron/lib/filestream.js'));
 const online = require(path.join(root, 'electron/lib/online.js'));
 const { AI } = require(path.join(root, 'electron/lib/ai.js'));
+const { Drive } = require(path.join(root, 'electron/lib/drive.js'));
+const syncLib = require(path.join(root, 'electron/lib/sync.js'));
+const { Artwork, detectImage } = require(path.join(root, 'electron/lib/artwork.js'));
 
 let pass = 0; let fail = 0;
 const ok = (cond, label, extra = '') => {
@@ -227,8 +230,120 @@ ok(catalog.map.length === 4 && catalog.text.split('\n').length === 4, `بناء 
 ok(/^0 \| /.test(catalog.text), 'ترقيم الصفوف يبدأ من صفر (لتوفير الرموز)');
 ok(catalog.map.every((id) => !!scan6.tracks[id]), 'كل معرّف في الفهرس يقابل أغنية حقيقية');
 
-section('9) سلامة الملفات');
+section('9) Google Drive');
+const authUrl = Drive.buildAuthUrl({
+  clientId: 'abc.apps.googleusercontent.com', redirectUri: 'http://127.0.0.1:5123',
+  challenge: 'CHAL', state: 'ST',
+});
+const au = new URL(authUrl);
+ok(au.origin + au.pathname === 'https://accounts.google.com/o/oauth2/v2/auth', 'نقطة موافقة جوجل الصحيحة');
+ok(au.searchParams.get('code_challenge_method') === 'S256', 'PKCE بطريقة S256');
+ok(au.searchParams.get('access_type') === 'offline', 'طلب رمز تحديث (offline)');
+ok(au.searchParams.get('redirect_uri') === 'http://127.0.0.1:5123', 'إعادة التوجيه إلى منفذ محلي');
+ok(au.searchParams.get('scope').includes('drive.readonly') && au.searchParams.get('scope').includes('drive.appdata'),
+  'الصلاحيات: قراءة فقط + مجلد التطبيق');
+ok(!au.searchParams.get('scope').includes('drive.file') && !/auth\/drive\s/.test(au.searchParams.get('scope')),
+  'بلا صلاحية تعديل أو حذف لملفات المستخدم');
+const pk = Drive.pkce();
+ok(pk.verifier.length >= 43 && !/[+/=]/.test(pk.challenge), 'توليد PKCE بترميز base64url صالح');
+
+const dTrack = Drive.toTrack({
+  id: '1AbC', name: '03 - أغنية الليل.mp3', mimeType: 'audio/mpeg', size: '5242880',
+  modifiedTime: '2024-03-01T10:00:00.000Z', fileExtension: 'mp3', md5Checksum: 'x',
+}, 'أغاني');
+ok(dTrack.source === 'drive' && dTrack.driveId === '1AbC', 'تحويل ملف درايف إلى مسار');
+ok(dTrack.title === 'أغنية الليل', `اشتقاق العنوان من الاسم — "${dTrack.title}"`);
+ok(dTrack.ext === 'mp3' && dTrack.size === 5242880, 'الامتداد والحجم');
+ok(dTrack.id === Drive.toTrack({ id: '1AbC', name: 'x.mp3' }).id, 'معرّف ثابت لنفس ملف درايف');
+ok(dTrack.id !== Drive.toTrack({ id: '2XyZ', name: 'x.mp3' }).id, 'معرّفات مختلفة لملفات مختلفة');
+
+// خدمة ملف درايف من الكاش (المسار العامل بلا إنترنت) — بلا حاجة لأي اتصال
+const driveCache = path.join(tmp, 'drive-cache');
+await fsp.mkdir(driveCache, { recursive: true });
+const fakeDrive = new Drive({ dir: dataDir, cacheDir: driveCache, safeStorage: null, openExternal: () => {} });
+const cachedBytes = Buffer.from('LIWA-DRIVE-CACHED-AUDIO-'.repeat(64), 'utf8');
+await fsp.writeFile(fakeDrive.cachePath('FILE1', 'mp3'), cachedBytes);
+ok(await fakeDrive.isCached('FILE1', 'mp3'), 'التعرّف على ملف محفوظ في كاش درايف');
+const full2 = await fakeDrive.serve('FILE1', 'mp3', null, 'audio/mpeg');
+ok(full2.status === 200 && full2.headers.get('x-liwa-cache') === 'hit', `الخدمة من الكاش بلا إنترنت — ${full2.status}`);
+const part2 = await fakeDrive.serve('FILE1', 'mp3', 'bytes=5-14', 'audio/mpeg');
+const partBytes = Buffer.from(await part2.arrayBuffer());
+ok(part2.status === 206 && partBytes.equals(cachedBytes.subarray(5, 15)), 'التنقّل داخل أغنية درايف المحفوظة (Range)');
+ok(part2.headers.get('content-range') === `bytes 5-14/${cachedBytes.length}`, 'ترويسة Content-Range لملف درايف');
+const bad2 = await fakeDrive.serve('FILE1', 'mp3', 'bytes=999999-', 'audio/mpeg');
+ok(bad2.status === 416, 'رفض نطاق خارج الحدود لملف درايف');
+const stats = await fakeDrive.cacheStats();
+ok(stats.count === 1 && stats.bytes === cachedBytes.length, `إحصاءات الكاش — ${JSON.stringify(stats)}`);
+await fakeDrive.removeFromCache('FILE1', 'mp3');
+ok(!(await fakeDrive.isCached('FILE1', 'mp3')), 'إزالة أغنية من الكاش');
+
+section('10) دمج المزامنة');
+const now = Date.now();
+const localU = {
+  favorites: { a: true }, favAt: { a: now - 1000 },
+  ratings: { a: 3 }, ratedAt: { a: now - 1000 },
+  playCount: { a: 5, b: 2 }, lastPlayed: { a: now - 5000 },
+  overrides: { a: { title: 'محلي', at: now - 1000 } }, artOverrides: {}, ai: {}, history: [{ id: 'a', at: now - 100 }],
+};
+const remoteU = {
+  favorites: {}, favAt: { a: now },                    // أُزيلت من المفضلة لاحقًا على جهاز آخر
+  ratings: { a: 5 }, ratedAt: { a: now },              // تقييم أحدث
+  playCount: { a: 3, c: 7 }, lastPlayed: { a: now },
+  overrides: { a: { title: 'بعيد', at: now - 5000 } }, // أقدم
+  artOverrides: { b: { art: 'custom_x.jpg', at: now } },
+  ai: {}, history: [{ id: 'b', at: now - 50 }],
+};
+const merged = syncLib.mergeUserData(localU, remoteU);
+ok(!merged.favorites.a, 'إزالة أحدث من المفضلة تفوز على إضافة أقدم');
+ok(merged.ratings.a === 5, `التقييم الأحدث يفوز — ${merged.ratings.a}`);
+ok(merged.playCount.a === 5 && merged.playCount.c === 7, 'عدّاد التشغيل يأخذ الأكبر من الجهازين');
+ok(merged.overrides.a.title === 'محلي', 'التعديل الأحدث يفوز حسب طابعه الزمني');
+ok(merged.artOverrides.b.art === 'custom_x.jpg', 'غلاف مخصّص من جهاز آخر يصل عبر المزامنة');
+ok(merged.history.length === 2 && merged.history[0].id === 'b', 'دمج السجل مرتّبًا بالأحدث');
+ok(syncLib.mergeUserData(localU, null).ratings.a === 3, 'بلا نسخة بعيدة تبقى البيانات المحلية كما هي');
+
+const plMerge = syncLib.mergePlaylists(
+  [{ id: 'p1', name: 'محلي', updatedAt: now }, { id: 'p2', name: 'قديمة', updatedAt: now - 9000 }],
+  [{ id: 'p1', name: 'بعيد', updatedAt: now - 5000 }, { id: 'p3', name: 'جديدة', updatedAt: now }],
+  {}, { p2: now },
+);
+ok(plMerge.items.length === 2, `قائمتان بعد الدمج والحذف — ${plMerge.items.length}`);
+ok(plMerge.items.find((p) => p.id === 'p1').name === 'محلي', 'أحدث نسخة للقائمة تفوز');
+ok(!plMerge.items.find((p) => p.id === 'p2'), 'شاهد الحذف يمنع عودة القائمة المحذوفة');
+ok(!!plMerge.items.find((p) => p.id === 'p3'), 'قائمة جديدة من جهاز آخر تصل');
+
+const payload = syncLib.buildPayload({ userdata: merged, playlists: plMerge.items, deletedPlaylists: plMerge.deleted, deviceId: 'win' });
+ok(payload.app === 'LiwaMusic' && payload.syncVersion >= 1 && payload.updatedAt > 0, 'حمولة المزامنة مكتملة');
+
+section('11) الأغلفة');
+ok(detectImage(PNG_1PX).ext === 'png', 'التعرّف على PNG من البايتات');
+ok(detectImage(Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0, 0, 0, 0, 0])).ext === 'jpg', 'التعرّف على JPEG');
+ok(detectImage(Buffer.from('RIFF____WEBPVP8 ', 'latin1')).ext === 'webp', 'التعرّف على WEBP');
+ok(detectImage(Buffer.from('ليس صورة أبدًا وإنما نص طويل', 'utf8')) === null, 'رفض ما ليس صورة');
+
+const artDir2 = path.join(tmp, 'art2');
+const art = new Artwork({ artDir: artDir2 });
+const artName = await art.store(PNG_1PX, 'k1');
+ok(artName.startsWith('custom_') && fs.existsSync(path.join(artDir2, artName)), 'حفظ غلاف مخصّص في الكاش');
+const artName2 = await art.store(PNG_1PX, 'k1');
+ok(artName2 === artName, 'نفس الصورة لا تُكرَّر على القرص');
+let rejected = false;
+try { await art.store(Buffer.from('نص'), 'k'); } catch { rejected = true; }
+ok(rejected, 'رفض ملف غير صورة');
+
+const libTracks = {
+  t1: { id: 't1', album: 'ألبوم', artist: 'فنان', albumArtist: 'فنان' },
+  t2: { id: 't2', album: 'ألبوم', artist: 'فنان', albumArtist: 'فنان' },
+  t3: { id: 't3', album: 'آخر', artist: 'فنان2', albumArtist: 'فنان2' },
+};
+ok(Artwork.targets({ scope: 'track', track: libTracks.t1, tracks: libTracks }).length === 1, 'نطاق: أغنية واحدة');
+ok(Artwork.targets({ scope: 'album', track: libTracks.t1, tracks: libTracks }).length === 2, 'نطاق: الألبوم كامل');
+ok(Artwork.targets({ scope: 'selection', selection: ['t1', 't3'], tracks: libTracks }).length === 2, 'نطاق: التحديد');
+ok(Artwork.targets({ scope: 'artist', track: libTracks.t3, tracks: libTracks }).length === 1, 'نطاق: الفنان');
+
+section('12) سلامة الملفات');
 for (const rel of ['electron/main.js', 'electron/preload.js', 'renderer/index.html', 'renderer/css/app.css',
+  'electron/lib/drive.js', 'electron/lib/sync.js', 'electron/lib/artwork.js',
   'renderer/js/app.js', 'renderer/js/player.js', 'renderer/js/views.js', 'renderer/js/panels.js',
   'renderer/js/util.js', 'renderer/js/i18n.js']) {
   ok(fs.existsSync(path.join(root, rel)), `موجود: ${rel}`);

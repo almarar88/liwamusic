@@ -408,6 +408,100 @@
       .replace(/^(?!<[hul])/gm, '');
   }
 
+  // ————————————————————————————— صفحة Google Drive
+
+  function fmtBytes(n) { return LM.fmtSize(n || 0); }
+
+  function drivePage(app) {
+    const st = app.state.driveStatus || {};
+    const wrap = el('div', { class: 'page' });
+    wrap.append(V().pageHead('Google Drive',
+      'شغّل أغانيك من درايف مباشرة بلا تنزيلها، وزامن تقييماتك وقوائمك بين أجهزتك.', []));
+
+    // 1) معرّف العميل
+    if (!st.hasClient) {
+      const idInput = el('input', { type: 'text', placeholder: '…apps.googleusercontent.com' });
+      const secInput = el('input', { type: 'password', placeholder: 'Client secret (اختياري لتطبيقات سطح المكتب)' });
+      wrap.append(el('div', { class: 'panel' },
+        el('h3', { text: 'الخطوة 1 — معرّف عميل جوجل (مرة واحدة)' }),
+        el('p', { class: 'muted', text: 'الوصول إلى ملفاتك يتطلب موافقتك عبر حسابك أنت، لذا تُنشئ معرّفًا مجانيًا من Google Cloud Console وتلصقه هنا. لا يغادر جهازك.' }),
+        el('ol', { class: 'steps' },
+          el('li', {}, 'افتح ', el('a', { class: 'lnk', text: 'console.cloud.google.com', onclick: () => app.openExternal('https://console.cloud.google.com/projectcreate') }), ' وأنشئ مشروعًا جديدًا (أي اسم).'),
+          el('li', {}, 'من ', el('b', { text: 'APIs & Services ← Library' }), ' فعّل ', el('b', { text: 'Google Drive API' }), '.'),
+          el('li', {}, 'من ', el('b', { text: 'OAuth consent screen' }), ' اختر ', el('b', { text: 'External' }), '، واملأ الاسم والبريد، ثم أضف بريدك في ', el('b', { text: 'Test users' }), '.'),
+          el('li', {}, 'من ', el('b', { text: 'Credentials ← Create credentials ← OAuth client ID' }), ' اختر نوع ', el('b', { text: 'Desktop app' }), '.'),
+          el('li', {}, 'انسخ ', el('b', { text: 'Client ID' }), ' (و Client secret إن ظهر) وألصقهما هنا.')),
+        el('div', { class: 'form' }, el('label', {}, el('span', { text: 'Client ID' }), idInput),
+          el('label', {}, el('span', { text: 'Client secret' }), secInput)),
+        el('div', { class: 'row gap' },
+          V().btn('حفظ ومتابعة', { kind: 'primary', onClick: () => app.driveSetClient(idInput.value, secInput.value) }),
+          V().btn('فتح دليل جوجل', { onClick: () => app.openExternal('https://developers.google.com/workspace/guides/create-credentials#desktop-app') }))));
+      return wrap;
+    }
+
+    // 2) الربط
+    if (!st.connected) {
+      wrap.append(el('div', { class: 'panel' },
+        el('h3', { text: 'الخطوة 2 — اربط حسابك' }),
+        el('p', { class: 'muted', text: 'سيفتح متصفحك صفحة موافقة جوجل. الصلاحيات المطلوبة: قراءة ملفاتك فقط + مجلد صغير خاص بالتطبيق للمزامنة. لا صلاحية تعديل أو حذف.' }),
+        el('p', { class: 'muted xs', text: 'إن ظهرت شاشة «Google hasn\'t verified this app» فهذا طبيعي لأن التطبيق خاص بك: اضغط Advanced ثم Go to … (unsafe).' }),
+        el('div', { class: 'row gap' },
+          V().btn('ربط الحساب', { kind: 'primary', onClick: () => app.driveConnect() }),
+          V().btn('تغيير معرّف العميل', { onClick: () => app.driveChangeClient() }))));
+      return wrap;
+    }
+
+    // 3) متصل
+    const acc = st.account || {};
+    const quota = acc.quota || {};
+    wrap.append(el('div', { class: 'panel row between' },
+      el('div', {},
+        el('b', { text: acc.name || 'حساب مرتبط' }),
+        el('p', { class: 'muted xs', text: acc.email || '' }),
+        quota.limit ? el('p', { class: 'muted xs', text: `المستخدَم ${fmtBytes(quota.usage)} من ${fmtBytes(quota.limit)}` }) : null),
+      el('div', { class: 'row gap' },
+        V().btn('تحديث الفهرس', { onClick: () => app.driveScan() }),
+        V().btn('فصل الحساب', { kind: 'danger', onClick: () => app.driveDisconnect() }))));
+
+    wrap.append(el('div', { class: 'tiles' },
+      V().tile('أغاني درايف', st.tracks || 0, 'مفهرسة في مكتبتك'),
+      V().tile('بلا وسوم بعد', st.untagged || 0, 'تُقرأ تلقائيًا في الخلفية'),
+      V().tile('محفوظة للتشغيل دون إنترنت', (st.cache || {}).count || 0, fmtBytes((st.cache || {}).bytes)),
+      V().tile('آخر مزامنة', st.sync && st.sync.lastAt ? fmtDate(st.sync.lastAt) : '—', st.sync && st.sync.enabled ? `كل ${st.sync.minutes} دقيقة` : 'المزامنة متوقفة')));
+
+    // المجلدات
+    const folders = el('div', { class: 'folders' });
+    for (const f of st.folders || []) {
+      folders.append(el('div', { class: 'folder-row' },
+        el('span', { class: 'f-path', text: `📁 ${f.name}`, title: f.id }),
+        el('button', { class: 'btn xs danger', text: 'إزالة', onclick: () => app.driveRemoveFolder(f.id, f.name) })));
+    }
+    if (!(st.folders || []).length) folders.append(el('p', { class: 'muted xs pad', text: 'لم تختر مجلدًا بعد.' }));
+    wrap.append(el('div', { class: 'panel' },
+      el('h3', { text: 'مجلدات الأغاني في درايف' }),
+      folders,
+      el('div', { class: 'row gap' },
+        V().btn('تصفّح واختيار مجلد', { kind: 'primary', onClick: () => app.driveBrowse() }),
+        st.untagged ? V().btn(`قراءة وسوم ${st.untagged} أغنية الآن`, { onClick: () => app.driveEnrich() }) : null)));
+
+    // المزامنة
+    wrap.append(el('div', { class: 'panel' },
+      el('h3', { text: 'المزامنة بين أجهزتك' }),
+      el('p', { class: 'muted', text: 'التقييمات والمفضلة وقوائم التشغيل وتعديلات البيانات والأغلفة المخصّصة تُحفظ في ملف صغير مخفي داخل مجلد خاص بالتطبيق في درايف — لا يظهر بين ملفاتك ولا يمكن للتطبيق قراءة أي شيء آخر.' }),
+      toggleRow('تفعيل المزامنة التلقائية', st.sync && st.sync.enabled, (v) => app.setSync(v)),
+      el('div', { class: 'row gap' },
+        V().btn('مزامنة الآن', { kind: 'primary', onClick: () => app.syncNow() }))));
+
+    // الكاش
+    wrap.append(el('div', { class: 'panel' },
+      el('h3', { text: 'التخزين المؤقت' }),
+      el('p', { class: 'muted', text: `${(st.cache || {}).count || 0} ملف · ${fmtBytes((st.cache || {}).bytes)} على القرص. الأغاني المشغّلة تُبثّ مباشرة، والمحفوظة منها تعمل بلا إنترنت.` }),
+      el('div', { class: 'row gap' },
+        V().btn('تفريغ التخزين المؤقت', { kind: 'danger', onClick: () => app.clearDriveCache() }))));
+
+    return wrap;
+  }
+
   // ————————————————————————————— صفحة الإعدادات
 
   function settingsPage(app) {
@@ -517,6 +611,6 @@
   }
 
   LM.Panels = {
-    render, updateLyrics, eqModal, sleepModal, aiPage, settingsPage, editTags, mdToHtml, sliderRow,
+    render, updateLyrics, eqModal, sleepModal, aiPage, settingsPage, drivePage, editTags, mdToHtml, sliderRow,
   };
 }(window.LM));

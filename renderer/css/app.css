@@ -537,3 +537,39 @@ body.mini .tb-left { min-width: auto; }
   .nav-l, .side-block, .made-by { display: none; }
   .nav-item { justify-content: center; }
 }
+
+/* ————————————————————————— التحديد المتعدد والإجراءات الجماعية */
+.tl-row.selected { background: rgb(var(--accent) / .10); box-shadow: inset 0 0 0 1px rgb(var(--accent) / .28); }
+.tl-row.selected.current { background: rgb(var(--accent) / .18); }
+.tt-line { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.src-badge { display: inline-grid; place-items: center; color: rgb(var(--accent)); opacity: .85; flex: 0 0 auto; }
+
+.sel-bar {
+  position: fixed; bottom: calc(var(--player) + 14px); left: 50%; transform: translateX(-50%);
+  z-index: 75; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center;
+  background: var(--bg2); border: 1px solid var(--line); border-radius: 14px;
+  padding: 8px 12px; box-shadow: var(--shadow); max-width: min(920px, 92vw);
+  animation: pop .18s var(--ease);
+}
+.sel-n { font-size: 12.5px; color: var(--muted); margin-inline-end: 4px; }
+.sel-n b { color: rgb(var(--accent)); font-size: 14px; }
+
+/* ————————————————————————— متصفّح مجلدات درايف */
+.drive-browser { display: flex; flex-direction: column; gap: 10px; min-height: 320px; }
+.db-crumbs { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; font-size: 12.5px; }
+.db-crumb { color: var(--muted); padding: 3px 8px; border-radius: 7px; }
+.db-crumb:hover { background: var(--surface); color: var(--text); }
+.db-crumb.on { color: rgb(var(--accent)); font-weight: 600; }
+.db-sep { color: var(--muted); opacity: .5; }
+.db-list { display: flex; flex-direction: column; gap: 2px; max-height: 46vh; overflow-y: auto; }
+.db-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 9px; text-align: start; font-size: 13px; }
+.db-row:hover { background: var(--surface); }
+.db-ico { font-size: 15px; }
+.db-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.db-count { padding: 8px 12px; border-top: 1px solid var(--line); margin-top: 6px; }
+
+/* ————————————————————————— خطوات الإعداد والروابط */
+.steps { display: flex; flex-direction: column; gap: 8px; padding-inline-start: 20px; font-size: 13px; line-height: 1.9; color: var(--muted); }
+.steps li::marker { color: rgb(var(--accent)); font-weight: 700; }
+.steps b { color: var(--text); background: var(--surface2); padding: 1px 6px; border-radius: 5px; font-weight: 600; }
+.lnk { color: rgb(var(--accent)); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }

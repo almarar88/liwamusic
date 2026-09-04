@@ -55,6 +55,8 @@
     ai: '<svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9L12 2z" fill="currentColor"/></svg>',
     plus: '<svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2"/></svg>',
     radio: '<svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 8a4 4 0 100 8 4 4 0 000-8zM5 5a10 10 0 000 14M19 5a10 10 0 010 14" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>',
+    cloud: '<svg viewBox="0 0 24 24" width="11" height="11"><path d="M7 18a4 4 0 010-8 5 5 0 019.6-1.5A3.5 3.5 0 0117.5 18z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>',
+    image: '<svg viewBox="0 0 24 24" width="14" height="14"><path d="M4 5h16v14H4zM4 16l4-4 3 3 4-5 5 6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
   };
 
   // ————————————————————————————— قائمة الأغاني الافتراضية
@@ -80,11 +82,16 @@
       render: (track, i) => {
         const ud = app.state.userdata;
         const isCur = app.state.currentId === track.id;
+        const selected = app.state.selection.has(track.id);
         const row = el('div', {
-          class: `tl-row${isCur ? ' current' : ''}`,
+          class: `tl-row${isCur ? ' current' : ''}${selected ? ' selected' : ''}`,
           ondblclick: () => app.playTrack(track.id, ids, { source }),
-          oncontextmenu: (e) => { e.preventDefault(); app.trackMenu(e, track, ids); },
-          onclick: (e) => { if (e.detail === 1) app.selectTrack(track.id); },
+          oncontextmenu: (e) => {
+            e.preventDefault();
+            if (!app.state.selection.has(track.id)) app.selectTrack(track.id, {});
+            app.trackMenu(e, track, ids);
+          },
+          onclick: (e) => app.selectTrack(track.id, e),
         });
         if (showIndex) {
           row.append(el('span', { class: 'c-idx' },
@@ -97,7 +104,11 @@
         row.append(el('span', { class: 'c-title' },
           artThumb(track),
           el('span', { class: 'tt' },
-            el('span', { class: 'tt-name', text: track.title || track.file, title: track.path }),
+            el('span', { class: 'tt-line' },
+              track.source === 'drive'
+                ? el('span', { class: 'src-badge', title: 'من Google Drive', html: ICONS.cloud })
+                : null,
+              el('span', { class: 'tt-name', text: track.title || track.file, title: track.path })),
             el('span', { class: 'tt-artist', text: track.artist || 'فنان غير معروف' }))));
         row.append(el('span', { class: 'c-album', text: track.album || '—', title: track.album || '' }));
         row.append(el('span', { class: 'c-genre' },
@@ -140,6 +151,8 @@
         btn('تشغيل الكل', { kind: 'primary', icon: ICONS.play, onClick: () => app.playList(items.map((t) => t.id)) }),
         btn('خلط', { icon: ICONS.shuffle, onClick: () => app.playList(items.map((t) => t.id), { shuffle: true }) }),
         btn('إضافة للطابور', { icon: ICONS.plus, onClick: () => app.enqueue(items.map((t) => t.id)) }),
+        btn('جلب الأغلفة الناقصة', { icon: ICONS.image, onClick: () => app.fetchMissingArt(items.map((t) => t.id)) }),
+        btn('تحديد الكل', { onClick: () => app.selectAll() }),
         onSort ? el('div', { class: 'sort-wrap' },
           el('span', { class: 'muted sm', text: 'ترتيب' }),
           sortSel,

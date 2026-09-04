@@ -15,6 +15,7 @@
     { id: 'favorites', label: 'المفضلة', icon: 'M12 21s-7-4.5-9.3-8.4C.7 9.3 2.4 5.5 6 5.5c2 0 3.3 1.1 4 2.2.7-1.1 2-2.2 4-2.2 3.6 0 5.3 3.8 3.3 7.1C19 16.5 12 21 12 21z' },
     { id: 'history', label: 'السجل', icon: 'M12 7v5l3 2M3 12a9 9 0 109-9 9 9 0 00-8 5' },
     { id: 'stats', label: 'الإحصاءات', icon: 'M5 20V10M12 20V4M19 20v-6' },
+    { id: 'drive', label: 'Google Drive', icon: 'M7.7 3h8.6l4.7 8.2-4.3 7.5H7.3L3 11.2 7.7 3zm.6 8.2h11.4M12 3l-4.3 7.5M12 21l4.3-7.5' },
     { id: 'ai', label: 'الذكاء الاصطناعي', icon: 'M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9L12 2z' },
     { id: 'settings', label: 'الإعدادات', icon: 'M12 15a3 3 0 100-6 3 3 0 000 6zM4 12l-1.5 2 2 3.4 2.4-.4 1.7 1.7.4 2.4h4l.4-2.4 1.7-1.7 2.4.4 2-3.4L20 12l1.5-2-2-3.4-2.4.4-1.7-1.7L15 3h-4l-.4 2.4-1.7 1.7L6.5 6.6l-2 3.4z' },
   ];
@@ -39,6 +40,9 @@
     insights: '',
     dj: null,
     aiStatus: {},
+    driveStatus: {},
+    selection: new Set(),
+    lastClickedId: null,
     rpTab: 'now',
     scanning: false,
   };
@@ -72,6 +76,7 @@
       this.ingestLibrary(lib);
 
       try { state.aiStatus = await api.ai.status(); } catch { state.aiStatus = { hasKey: false }; }
+      await this.refreshDrive();
 
       this.buildNav();
       this.applyAiVisibility();
@@ -94,8 +99,17 @@
       state.userdata = Object.assign(state.userdata, lib.userdata || {});
       state.playlists = lib.playlists || [];
       const overrides = state.userdata.overrides || {};
-      state.tracks = (lib.tracks || []).map((t) => (overrides[t.id] ? { ...t, ...overrides[t.id] } : t));
+      const artOv = state.userdata.artOverrides || {};
+      state.tracks = (lib.tracks || []).map((t) => {
+        let out = t;
+        const ov = overrides[t.id];
+        if (ov) { out = { ...out, ...ov }; delete out.at; }
+        if (artOv[t.id] && artOv[t.id].art) out = { ...out, art: artOv[t.id].art, customArt: true };
+        return out;
+      });
       state.byId = new Map(state.tracks.map((t) => [t.id, t]));
+      // ننظّف التحديد من معرّفات لم تعد موجودة
+      for (const id of [...state.selection]) if (!state.byId.has(id)) state.selection.delete(id);
     },
 
     // ————————————————————————————— الواجهة العامة
@@ -153,7 +167,7 @@
         home: V.home, tracks: V.tracksView, albums: V.albumsView, artists: V.artistsView,
         genres: V.genresView, playlists: state.filter.playlist ? V.playlistDetail : V.playlistsView,
         favorites: V.favoritesView, history: V.historyView, stats: V.statsView,
-        ai: LM.Panels.aiPage, settings: LM.Panels.settingsPage,
+        ai: LM.Panels.aiPage, settings: LM.Panels.settingsPage, drive: LM.Panels.drivePage,
       };
       host.append((map[state.view] || V.home)(this));
       this.renderSidebar();
@@ -527,7 +541,79 @@
       if (this._vl) this._vl.refresh();
     },
 
-    selectTrack(id) { state.selectedId = id; },
+    /** تحديد متعدد: نقرة عادية، Ctrl لإضافة/إزالة، Shift لمدى. */
+    selectTrack(id, e = {}) {
+      const visible = this.visibleTracks().map((t) => t.id);
+      if (e.shiftKey && state.lastClickedId && visible.includes(state.lastClickedId)) {
+        const a = visible.indexOf(state.lastClickedId);
+        const b = visible.indexOf(id);
+        if (a > -1 && b > -1) {
+          const [from, to] = a < b ? [a, b] : [b, a];
+          for (let i = from; i <= to; i++) state.selection.add(visible[i]);
+        }
+      } else if (e.ctrlKey || e.metaKey) {
+        if (state.selection.has(id)) state.selection.delete(id); else state.selection.add(id);
+        state.lastClickedId = id;
+      } else {
+        state.selection.clear();
+        state.selection.add(id);
+        state.lastClickedId = id;
+      }
+      state.selectedId = id;
+      this.renderSelectionBar();
+      if (this._vl) this._vl.refresh();
+    },
+
+    /** كل أغاني ألبوم أغنية معيّنة (للتغيير الجماعي للغلاف). */
+    albumIds(track) {
+      const key = `${track.albumArtist || track.artist || ''}|${track.album || ''}`;
+      return state.tracks
+        .filter((t) => `${t.albumArtist || t.artist || ''}|${t.album || ''}` === key)
+        .map((t) => t.id);
+    },
+
+    selectAll() {
+      for (const t of this.visibleTracks()) state.selection.add(t.id);
+      this.renderSelectionBar();
+      if (this._vl) this._vl.refresh();
+    },
+
+    clearSelection() {
+      state.selection.clear();
+      this.renderSelectionBar();
+      if (this._vl) this._vl.refresh();
+    },
+
+    selectionIds() {
+      return state.selection.size ? [...state.selection] : (state.selectedId ? [state.selectedId] : []);
+    },
+
+    /** شريط الإجراءات الجماعية أسفل القائمة. */
+    renderSelectionBar() {
+      let bar = document.getElementById('selBar');
+      const n = state.selection.size;
+      if (n < 1) { if (bar) bar.remove(); return; }
+      if (!bar) {
+        bar = el('div', { class: 'sel-bar', id: 'selBar' });
+        document.body.append(bar);
+      }
+      bar.innerHTML = '';
+      const ids = [...state.selection];
+      // ملاحظة: append يحوّل null إلى نص "null"، لذا نُرشّح العناصر الفارغة
+      bar.append(...[
+        el('span', { class: 'sel-n' }, el('b', { text: String(n) }), ' محددة'),
+        el('button', { class: 'btn xs', text: 'تشغيل', onclick: () => this.playList(ids) }),
+        el('button', { class: 'btn xs', text: 'للطابور', onclick: () => this.enqueue(ids) }),
+        el('button', { class: 'btn xs', text: 'إلى قائمة…', onclick: () => this.addToPlaylist(ids) }),
+        el('button', { class: 'btn xs', text: 'غلاف موحّد', onclick: () => this.setArtFromFile(ids) }),
+        el('button', { class: 'btn xs', text: 'جلب الأغلفة', onclick: () => this.fetchMissingArt(ids) }),
+        el('button', { class: 'btn xs', text: 'تعديل جماعي', onclick: () => this.bulkEdit(ids) }),
+        el('button', { class: 'btn xs', text: 'مفضلة', onclick: () => ids.forEach((id) => this.toggleFavorite(id)) }),
+        state.tracks.some((t) => state.selection.has(t.id) && t.source === 'drive')
+          ? el('button', { class: 'btn xs', text: 'حفظ للاستماع دون إنترنت', onclick: () => this.pinTracks(ids) }) : null,
+        el('button', { class: 'icon-btn xs', text: '✕', title: 'إلغاء التحديد', onclick: () => this.clearSelection() }),
+      ].filter(Boolean));
+    },
 
     async saveOverride(id, patch) {
       await api.user.override(id, patch);
@@ -698,14 +784,285 @@
         { label: 'إضافة إلى قائمة…', onClick: () => this.addToPlaylist([track.id]) },
         ...(this.aiOn() ? [{ label: 'راديو مشابه (ذكاء اصطناعي)', onClick: () => this.aiRadio(track.id) }] : []),
         '-',
+        { label: 'تغيير الغلاف (هذه الأغنية)', onClick: () => this.setArtFromFile([track.id]) },
+        { label: 'تغيير غلاف الألبوم كاملًا', onClick: () => this.setArtFromFile(this.albumIds(track)) },
+        state.selection.size > 1
+          ? { label: `تغيير غلاف المحدد (${state.selection.size})`, onClick: () => this.setArtFromFile([...state.selection]) }
+          : null,
+        { label: 'غلاف من رابط…', onClick: () => this.setArtFromUrl([track.id]) },
+        track.customArt ? { label: 'إزالة الغلاف المخصّص', onClick: () => this.clearArt([track.id]) } : null,
+        '-',
+        track.source === 'drive'
+          ? { label: 'حفظ للاستماع دون إنترنت', onClick: () => this.pinTracks([track.id]) } : null,
+        track.source === 'drive'
+          ? { label: 'إزالة من التخزين المؤقت', onClick: async () => { await api.drive.unpin([track.id]); LM.toast('أُزيلت من الكاش.', 'ok'); } } : null,
         { label: 'جلب الغلاف من الإنترنت', onClick: () => this.fetchArt(track.id) },
         { label: 'جلب الكلمات', onClick: () => { state.rpTab = 'lyrics'; this.setRpTab('lyrics'); this.fetchLyrics(track.id); } },
         { label: 'تحرير البيانات', onClick: () => LM.Panels.editTags(this, track) },
         '-',
         { label: 'عرض الألبوم', onClick: () => this.openAlbum(track.album || '—', track.albumArtist || track.artist || '—') },
         { label: 'عرض الفنان', onClick: () => this.openArtist(track.artist || '—') },
-        { label: 'فتح موقع الملف', onClick: () => api.app.reveal(track.id) },
-      ]);
+        track.source === 'drive' ? null : { label: 'فتح موقع الملف', onClick: () => api.app.reveal(track.id) },
+      ].filter(Boolean));
+    },
+
+    // ————————————————————————————— الأغلفة
+    async setArtFromFile(ids) {
+      if (!ids || !ids.length) return;
+      const pick = await api.art.pickFile();
+      if (!pick || pick.canceled) return;
+      try {
+        const res = await api.art.setFromFile(ids, pick.path);
+        toast(`طُبِّق الغلاف على ${res.count} أغنية.`, 'ok');
+      } catch (err) { toast(`تعذّر تعيين الغلاف: ${err.message}`, 'err'); }
+    },
+
+    async setArtFromUrl(ids) {
+      if (!ids || !ids.length) return;
+      const url = await LM.promptDialog('غلاف من رابط', {
+        label: 'ألصق رابط الصورة',
+        placeholder: 'https://…/cover.jpg',
+      });
+      if (!url) return;
+      try {
+        const res = await api.art.setFromUrl(ids, url);
+        toast(`طُبِّق الغلاف على ${res.count} أغنية.`, 'ok');
+      } catch (err) { toast(`تعذّر جلب الصورة: ${err.message}`, 'err'); }
+    },
+
+    async clearArt(ids) {
+      await api.art.clear(ids);
+      toast('أُعيد الغلاف الأصلي.', 'ok');
+    },
+
+    /** يجلب الأغلفة الناقصة من الإنترنت لمجموعة أغانٍ مع شريط تقدّم. */
+    async fetchMissingArt(ids) {
+      const list = ids && ids.length ? ids : this.visibleTracks().map((t) => t.id);
+      const missing = list.filter((id) => { const t = state.byId.get(id); return t && !t.art; });
+      if (!missing.length) { toast('كل الأغاني المحددة لديها أغلفة.', 'ok'); return; }
+      toast(`جارٍ البحث عن ${missing.length} غلاف…`, 'info', 3000);
+      try {
+        const res = await api.art.fetchMissing(missing);
+        this.showScanBar(null);
+        toast(`جُلب ${res.found} غلافًا من أصل ${res.checked}.`, res.found ? 'ok' : 'warn', 5000);
+      } catch (err) {
+        this.showScanBar(null);
+        toast(`تعذّر الجلب: ${err.message}`, 'err');
+      }
+    },
+
+    /** تعديل وسوم مجموعة أغانٍ دفعة واحدة. */
+    bulkEdit(ids) {
+      const fields = [['artist', 'الفنان'], ['album', 'الألبوم'], ['genre', 'النوع'], ['year', 'السنة'], ['albumArtist', 'فنان الألبوم']];
+      const inputs = {};
+      const form = el('div', { class: 'form grid2' });
+      for (const [key, label] of fields) {
+        const input = el('input', { type: key === 'year' ? 'number' : 'text', placeholder: 'اتركه فارغًا لعدم التغيير' });
+        inputs[key] = input;
+        form.append(el('label', {}, el('span', { text: label }), input));
+      }
+      form.append(el('p', { class: 'muted xs', text: `سيُطبَّق على ${ids.length} أغنية. الحقول الفارغة تُترك كما هي، ولا تُمس ملفاتك الأصلية.` }));
+      LM.modal({
+        title: 'تعديل جماعي للبيانات',
+        body: form,
+        actions: [
+          { label: 'إلغاء' },
+          {
+            label: `طبّق على ${ids.length}`,
+            kind: 'primary',
+            onClick: async () => {
+              const patch = {};
+              for (const [key] of fields) {
+                const v = inputs[key].value.trim();
+                if (v) patch[key] = key === 'year' ? Number(v) || 0 : v;
+              }
+              if (!Object.keys(patch).length) { toast('لم تُدخل أي قيمة.', 'warn'); return; }
+              try {
+                const res = await api.user.bulkOverride(ids, patch);
+                state.userdata = await api.user.get();
+                const lib = await api.library.get();
+                this.ingestLibrary(lib);
+                this.render();
+                toast(`عُدِّلت ${res.updated} أغنية.`, 'ok');
+              } catch (err) { toast(`فشل التعديل: ${err.message}`, 'err'); }
+            },
+          },
+        ],
+      });
+    },
+
+    // ————————————————————————————— Google Drive
+    async refreshDrive() {
+      try { state.driveStatus = await api.drive.status(); } catch { state.driveStatus = { hasClient: false, connected: false }; }
+      return state.driveStatus;
+    },
+
+    async driveSetClient(clientId, clientSecret) {
+      if (!clientId || !clientId.trim()) { toast('ألصق معرّف العميل أولًا.', 'warn'); return; }
+      await api.drive.setClient(clientId.trim(), (clientSecret || '').trim());
+      await this.refreshDrive();
+      toast('حُفظ معرّف العميل. اضغط «ربط الحساب».', 'ok');
+      this.render();
+    },
+
+    async driveConnect() {
+      toast('فُتح متصفحك لتسجيل الدخول بحساب جوجل…', 'info', 6000);
+      try {
+        await api.drive.connect();
+        await this.refreshDrive();
+        toast('تم ربط Google Drive ✓', 'ok');
+        this.render();
+      } catch (err) {
+        const map = {
+          CLIENT_ID_REQUIRED: 'أدخل معرّف العميل أولًا.',
+          AUTH_DENIED: 'رُفضت الموافقة في المتصفح.',
+          AUTH_TIMEOUT: 'انتهت المهلة قبل إتمام تسجيل الدخول.',
+          NO_REFRESH_TOKEN: 'لم يُصدر رمز تحديث — تأكد أن نوع العميل «Desktop app».',
+        };
+        toast(map[err.code] || `تعذّر الربط: ${err.message}`, 'err', 7000);
+      }
+    },
+
+    async driveDisconnect() {
+      if (!await LM.confirmDialog('فصل الحساب', 'ستبقى الأغاني المحفوظة للاستماع دون إنترنت، وتُزال صلاحية الوصول.')) return;
+      await api.drive.disconnect();
+      await this.refreshDrive();
+      this.render();
+      toast('فُصل الحساب.', 'ok');
+    },
+
+    /** متصفّح مجلدات درايف لاختيار مجلد الأغاني. */
+    async driveBrowse(startId = 'root') {
+      const body = el('div', { class: 'drive-browser' });
+      const crumbs = el('div', { class: 'db-crumbs' });
+      const list = el('div', { class: 'db-list' });
+      body.append(crumbs, list);
+      let current = { id: startId, name: 'ملفاتي (My Drive)' };
+      const stack = [current];
+      const { close } = LM.modal({
+        title: 'اختر مجلد الأغاني من درايف',
+        body,
+        wide: true,
+        actions: [
+          { label: 'إلغاء' },
+          {
+            label: 'اختر هذا المجلد',
+            kind: 'primary',
+            onClick: async () => {
+              toast(`جارٍ فهرسة «${current.name}»…`, 'info', 4000);
+              try {
+                const res = await api.drive.addFolder(current.id, current.name);
+                await this.refreshDrive();
+                if (res && res.stats) toast(`فُهرست ${res.stats.total} أغنية من درايف.`, 'ok', 5000);
+                this.render();
+              } catch (err) { toast(`تعذّرت الفهرسة: ${err.message}`, 'err'); }
+            },
+          },
+        ],
+      });
+
+      const draw = async () => {
+        list.innerHTML = '<p class="muted pad">جارٍ التحميل…</p>';
+        crumbs.innerHTML = '';
+        stack.forEach((node, i) => {
+          crumbs.append(el('button', {
+            class: `db-crumb${i === stack.length - 1 ? ' on' : ''}`,
+            text: node.name,
+            onclick: async () => { stack.length = i + 1; current = node; await draw(); },
+          }));
+          if (i < stack.length - 1) crumbs.append(el('span', { class: 'db-sep', text: '/' }));
+        });
+        try {
+          const page = await api.drive.listFolder(current.id);
+          list.innerHTML = '';
+          if (!page.folders.length && !page.audio.length) {
+            list.append(el('p', { class: 'muted pad', text: 'هذا المجلد فارغ.' }));
+          }
+          for (const f of page.folders) {
+            list.append(el('button', {
+              class: 'db-row',
+              ondblclick: async () => { current = f; stack.push(f); await draw(); },
+              onclick: async () => { current = f; stack.push(f); await draw(); },
+            }, el('span', { class: 'db-ico', text: '📁' }), el('span', { class: 'db-name', text: f.name })));
+          }
+          if (page.audio.length) {
+            list.append(el('div', { class: 'db-count muted xs', text: `${page.audio.length} ملف صوتي في هذا المجلد` }));
+          }
+        } catch (err) {
+          list.innerHTML = '';
+          list.append(el('p', { class: 'muted pad', text: `تعذّر القراءة: ${err.message}` }));
+        }
+      };
+      await draw();
+      return close;
+    },
+
+    async driveScan() {
+      toast('جارٍ تحديث فهرس درايف…', 'info', 3000);
+      try {
+        const res = await api.drive.scan();
+        await this.refreshDrive();
+        if (res && res.stats) toast(`درايف: ${res.stats.total} أغنية · ${res.stats.added} جديدة`, 'ok', 5000);
+        this.render();
+      } catch (err) { toast(`فشل: ${err.message}`, 'err'); }
+    },
+
+    async driveRemoveFolder(folderId, name) {
+      if (!await LM.confirmDialog('إزالة المجلد', `ستُزال أغاني «${name}» من الفهرس (لن تُحذف من درايف).`)) return;
+      await api.drive.removeFolder(folderId);
+      await this.refreshDrive();
+      this.render();
+    },
+
+    async pinTracks(ids) {
+      const drivers = ids.filter((id) => { const t = state.byId.get(id); return t && t.source === 'drive'; });
+      if (!drivers.length) { toast('لا توجد أغانٍ من درايف في التحديد.', 'warn'); return; }
+      toast(`جارٍ حفظ ${drivers.length} أغنية للاستماع دون إنترنت…`, 'info', 4000);
+      try {
+        const res = await api.drive.pin(drivers);
+        this.showScanBar(null);
+        await this.refreshDrive();
+        toast(`حُفظت ${res.pinned} أغنية على جهازك.`, 'ok');
+      } catch (err) { this.showScanBar(null); toast(`تعذّر الحفظ: ${err.message}`, 'err'); }
+    },
+
+    async driveEnrich() {
+      toast('جارٍ قراءة وسوم ملفات درايف…', 'info', 3000);
+      try {
+        const res = await api.drive.enrich(0);
+        await this.refreshDrive();
+        this.render();
+        toast(`قُرئت وسوم ${res.enriched} أغنية.`, 'ok');
+      } catch (err) { toast(`تعذّرت القراءة: ${err.message}`, 'err'); }
+    },
+
+    async driveChangeClient() {
+      const id = await LM.promptDialog('معرّف عميل جديد', { label: 'Client ID', placeholder: '…apps.googleusercontent.com' });
+      if (!id) return;
+      const secret = await LM.promptDialog('Client secret (اختياري)', { label: 'اتركه فارغًا إن لم يظهر لك' });
+      await this.driveSetClient(id, secret || '');
+    },
+
+    async setSync(enabled) {
+      await api.sync.set(enabled, state.settings.syncMinutes || 15);
+      await this.refreshDrive();
+      toast(enabled ? 'فُعّلت المزامنة التلقائية.' : 'أُوقفت المزامنة.', 'ok');
+      this.render();
+    },
+
+    async clearDriveCache() {
+      if (!await LM.confirmDialog('تفريغ التخزين المؤقت', 'ستُحذف الأغاني المحفوظة للاستماع دون إنترنت (تبقى في درايف).')) return;
+      await api.drive.clearCache();
+      await this.refreshDrive();
+      this.render();
+      toast('فُرِّغ التخزين المؤقت.', 'ok');
+    },
+
+    async syncNow() {
+      toast('جارٍ المزامنة مع درايف…', 'info', 3000);
+      const res = await api.sync.now();
+      if (res && res.ok) { await this.refreshDrive(); this.render(); toast('تمت المزامنة ✓', 'ok'); }
+      else toast(`تعذّرت المزامنة: ${(res && res.error) || ''}`, 'err');
     },
 
     // ————————————————————————————— الإنترنت
@@ -1048,6 +1405,8 @@
         const tag = (e.target.tagName || '').toLowerCase();
         const typing = tag === 'input' || tag === 'textarea' || e.target.isContentEditable;
         if (e.ctrlKey && e.key.toLowerCase() === 'f') { e.preventDefault(); $('#search').focus(); return; }
+        if (e.ctrlKey && e.key.toLowerCase() === 'a' && state.view === 'tracks') { e.preventDefault(); this.selectAll(); return; }
+        if (e.key === 'Escape' && state.selection.size) { this.clearSelection(); return; }
         if (e.ctrlKey && e.key.toLowerCase() === 'm') { e.preventDefault(); $('#btnMini').click(); return; }
         if (typing) return;
         const k = e.key.toLowerCase();
@@ -1133,6 +1492,22 @@
         else if (action === 'prev') this.prev();
         else if (action === 'stop') this.engine.pause();
       });
+
+      api.drive.onEnrich((p) => {
+        this.showScanBar(`قراءة وسوم درايف… ${p.done}/${p.total}`, p.done / Math.max(1, p.total));
+        if (p.done >= p.total) setTimeout(() => this.showScanBar(null), 1200);
+      });
+      api.drive.onPinProgress((p) => {
+        if (p.finished && p.done >= p.count) { this.showScanBar(null); return; }
+        const ratio = p.total ? p.received / p.total : p.done / Math.max(1, p.count);
+        this.showScanBar(`حفظ للاستماع دون إنترنت… ${p.done + 1}/${p.count}`, ratio);
+      });
+      api.art.onProgress((p) => {
+        this.showScanBar(`جلب الأغلفة… ${p.done}/${p.total} (${p.found} وُجد)`, p.done / Math.max(1, p.total));
+        if (p.done >= p.total) setTimeout(() => this.showScanBar(null), 1200);
+      });
+      api.sync.onDone(() => this.refreshDrive());
+      api.sync.onError(({ error }) => toast(`تعذّرت المزامنة: ${error}`, 'warn', 5000));
 
       api.window.onState(({ maximized }) => document.body.classList.toggle('maximized', maximized));
       setInterval(() => this.checkOnline(), 60000);

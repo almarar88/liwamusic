@@ -85,6 +85,7 @@ async function readTags(file, artDir) {
   const fallbackTitle = titleFromFilename(file.path);
   const track = {
     id,
+    source: 'local',
     path: file.path,
     folder: path.dirname(file.path),
     file: path.basename(file.path),
@@ -140,6 +141,44 @@ async function readTags(file, artDir) {
     track.error = String((err && err.message) || err).slice(0, 200);
   }
   return track;
+}
+
+/**
+ * يقرأ الوسوم من مقطع بايتات (يُستخدم لملفات Google Drive بلا تنزيلها كاملة).
+ * @param {Buffer} buf أول جزء من الملف (يكفي عادةً 512KB لوسوم ID3 والغلاف)
+ * @param {object} opts { mimeType, size, artDir, keyHint }
+ */
+async function readTagsFromBuffer(buf, { mimeType, size, artDir, keyHint = '' } = {}) {
+  const mm = await loadMM();
+  const out = {};
+  try {
+    const meta = await mm.parseBuffer(new Uint8Array(buf), { mimeType, size }, { duration: false });
+    const c = meta.common || {};
+    const f = meta.format || {};
+    if (cleanString(c.title)) out.title = cleanString(c.title);
+    if (cleanString(c.artist)) out.artist = cleanString(c.artist);
+    if (cleanString(c.albumartist)) out.albumArtist = cleanString(c.albumartist);
+    if (cleanString(c.album)) out.album = cleanString(c.album);
+    if (cleanString((c.genre || [])[0])) out.genre = cleanString((c.genre || [])[0]);
+    if (Number(c.year)) out.year = Number(c.year);
+    if (Number(c.track && c.track.no)) out.trackNo = Number(c.track.no);
+    if (Number(c.disk && c.disk.no)) out.discNo = Number(c.disk.no);
+    if (f.bitrate) out.bitrate = Math.round(f.bitrate / 1000);
+    if (f.sampleRate) out.sampleRate = f.sampleRate;
+    if (f.numberOfChannels) out.channels = f.numberOfChannels;
+    if (f.codec || f.container) out.codec = cleanString(f.codec || f.container);
+    if (typeof f.lossless === 'boolean') out.lossless = f.lossless;
+    if (f.duration) out.duration = Math.round(f.duration * 1000) / 1000;
+    const pic = (c.picture || [])[0];
+    if (pic && artDir) {
+      const key = out.album ? `${out.albumArtist || out.artist || ''}|${out.album}` : keyHint;
+      const art = await saveArtwork(pic, artDir, key || keyHint);
+      if (art) out.art = art;
+    }
+  } catch (err) {
+    out.tagError = String((err && err.message) || err).slice(0, 160);
+  }
+  return out;
 }
 
 /**
@@ -203,4 +242,6 @@ function findDuplicates(tracks) {
   return [...buckets.values()].filter((ids) => ids.length > 1);
 }
 
-module.exports = { scanFolders, walk, readTags, trackId, findDuplicates, AUDIO_EXT, hash };
+module.exports = {
+  scanFolders, walk, readTags, readTagsFromBuffer, trackId, findDuplicates, AUDIO_EXT, hash, titleFromFilename,
+};

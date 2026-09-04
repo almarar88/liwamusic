@@ -6,20 +6,23 @@
  */
 const {
   app, BrowserWindow, ipcMain, dialog, protocol, shell,
-  globalShortcut, safeStorage, nativeTheme, Menu,
+  globalShortcut, safeStorage, nativeTheme, Menu, nativeImage,
 } = require('electron');
 const fs = require('fs');
 const fsp = require('fs/promises');
 const path = require('path');
 const { pathToFileURL } = require('url');
 
-const { serveFile, encodePath, decodePath } = require('./lib/filestream');
+const { serveFile, encodePath, decodePath, MIME } = require('./lib/filestream');
 
 const { Store } = require('./lib/store');
 const scanner = require('./lib/scanner');
 const online = require('./lib/online');
 const playlists = require('./lib/playlists');
 const { AI, MODELS, DEFAULT_MODEL } = require('./lib/ai');
+const { Drive } = require('./lib/drive');
+const { Artwork } = require('./lib/artwork');
+const sync = require('./lib/sync');
 
 const APP_NAME = 'LiwaMusic';
 const CREATOR = 'تم إنشاؤه عن طريق LiwaMusic';
@@ -27,13 +30,18 @@ const CREATOR = 'تم إنشاؤه عن طريق LiwaMusic';
 let win = null;
 let store = null;
 let ai = null;
+let drive = null;
+let artwork = null;
 let dataDir = null;
 let artDir = null;
 let lyricsDir = null;
+let driveCacheDir = null;
 let scanning = false;
+let driveScanning = false;
 let watchers = [];
 let miniMode = false;
 let normalBounds = null;
+let syncTimer = null;
 
 // ————————————————————————————————— البروتوكول الآمن للملفات المحلية
 
@@ -59,6 +67,14 @@ function registerProtocol() {
         const known = store.read('library.json').tracks[scanner.trackId(filePath)];
         if (!known) return new Response('Forbidden', { status: 403 });
         return await serveFile(filePath, request.headers.get('range'));
+      }
+      if (host === 'drive') {
+        const [fileId, ext] = key.split('.');
+        const t = Object.values(store.read('library.json').tracks)
+          .find((x) => x.source === 'drive' && x.driveId === fileId);
+        if (!t) return new Response('Forbidden', { status: 403 });
+        const mime = MIME[`.${ext || t.ext}`] || 'audio/mpeg';
+        return await drive.serve(fileId, ext || t.ext, request.headers.get('range'), mime);
       }
       if (host === 'art') {
         const safe = path.basename(key);
@@ -169,6 +185,158 @@ function setupWatchers() {
       watchers.push(w);
     } catch { /* بعض أنظمة الملفات لا تدعم المراقبة المتكررة */ }
   }
+}
+
+/** فهرسة مجلدات Google Drive المختارة. */
+async function runDriveScan({ enrich = true } = {}) {
+  if (driveScanning) return { ok: false, error: 'BUSY' };
+  if (!drive.isConnected()) return { ok: false, error: 'NOT_CONNECTED' };
+  driveScanning = true;
+  const settings = store.read('settings.json');
+  const lib = store.read('library.json');
+  const folders = settings.driveFolders || [];
+  try {
+    const seen = new Map();
+    for (const folder of folders) {
+      send('library:progress', { phase: 'drive-walk', folder: folder.name, found: seen.size });
+      // eslint-disable-next-line no-await-in-loop
+      const files = await drive.walkAudio(folder.id, (p) => {
+        send('library:progress', { phase: 'drive-walk', folder: folder.name, found: seen.size + p.found });
+      });
+      for (const f of files) if (!seen.has(f.id)) seen.set(f.id, { file: f, folderName: folder.name });
+    }
+
+    const previous = lib.tracks;
+    let added = 0; let kept = 0;
+    const driveIds = new Set();
+    for (const [fileId, { file, folderName }] of seen) {
+      const track = Drive.toTrack(file, folderName);
+      driveIds.add(track.id);
+      const prev = previous[track.id];
+      if (prev && prev.md5 === track.md5 && prev.size === track.size) {
+        previous[track.id] = { ...prev, folder: folderName };
+        kept++;
+      } else {
+        previous[track.id] = prev ? { ...track, addedAt: prev.addedAt } : track;
+        added++;
+      }
+    }
+    // إزالة ملفات درايف التي لم تعد موجودة
+    let removed = 0;
+    for (const [id, t] of Object.entries(previous)) {
+      if (t.source === 'drive' && !driveIds.has(id)) { delete previous[id]; removed++; }
+    }
+    lib.tracks = previous;
+    store.write('library.json', lib);
+    await store.flush('library.json');
+    send('library:updated', libraryPayload());
+    send('library:progress', { phase: 'done', total: seen.size, added, skipped: kept, updated: 0, failed: 0, removed });
+
+    if (enrich) enrichDriveTags().catch(() => {});
+    return { ok: true, stats: { total: seen.size, added, skipped: kept, removed } };
+  } catch (err) {
+    send('library:progress', { phase: 'error', error: String(err.message || err) });
+    return { ok: false, error: String(err.message || err) };
+  } finally {
+    driveScanning = false;
+  }
+}
+
+/** يقرأ وسوم ملفات درايف تدريجيًا عبر تنزيل مقطع صغير من كل ملف. */
+async function enrichDriveTags(limit = 0) {
+  const lib = store.read('library.json');
+  const pending = Object.values(lib.tracks)
+    .filter((t) => t.source === 'drive' && !t.tagged)
+    .slice(0, limit || undefined);
+  if (!pending.length) return { enriched: 0 };
+  let done = 0;
+  for (const t of pending) {
+    try {
+      // 512KB تكفي لوسوم ID3 وغلافها في الغالبية العظمى من الملفات
+      // eslint-disable-next-line no-await-in-loop
+      const head = await drive.readRange(t.driveId, 0, 512 * 1024 - 1);
+      // eslint-disable-next-line no-await-in-loop
+      const tags = await scanner.readTagsFromBuffer(head, {
+        mimeType: MIME[`.${t.ext}`], size: t.size, artDir, keyHint: t.driveId,
+      });
+      const fresh = store.read('library.json');
+      if (fresh.tracks[t.id]) {
+        Object.assign(fresh.tracks[t.id], tags, { tagged: true });
+        store.write('library.json', fresh);
+      }
+      done++;
+    } catch {
+      const fresh = store.read('library.json');
+      if (fresh.tracks[t.id]) { fresh.tracks[t.id].tagged = true; store.write('library.json', fresh); }
+    }
+    if (done % 10 === 0 || done === pending.length) {
+      send('drive:enrich', { done, total: pending.length });
+      send('library:updated', libraryPayload());
+    }
+  }
+  await store.flush('library.json');
+  send('library:updated', libraryPayload());
+  return { enriched: done };
+}
+
+/** مزامنة بيانات المستخدم والقوائم مع ملف مخفي في Google Drive. */
+async function runSync({ upload = true } = {}) {
+  if (!drive.isConnected()) return { ok: false, error: 'NOT_CONNECTED' };
+  const settings = store.read('settings.json');
+  if (!settings.driveSync) return { ok: false, error: 'SYNC_DISABLED' };
+  try {
+    const remote = await drive.downloadSync();
+    const localUser = store.read('userdata.json');
+    const localPl = store.read('playlists.json');
+
+    if (remote && remote.data && remote.data.userdata) {
+      const merged = sync.mergeUserData(localUser, remote.data.userdata);
+      Object.assign(localUser, merged);
+      store.write('userdata.json', localUser);
+
+      const plMerge = sync.mergePlaylists(
+        localPl.items, remote.data.playlists || [],
+        localPl.deleted || {}, remote.data.deletedPlaylists || {},
+      );
+      localPl.items = plMerge.items;
+      localPl.deleted = plMerge.deleted;
+      store.write('playlists.json', localPl);
+      await store.flushAll();
+      send('library:updated', libraryPayload());
+    }
+
+    if (upload) {
+      await drive.uploadSync(sync.buildPayload({
+        userdata: store.read('userdata.json'),
+        playlists: store.read('playlists.json').items,
+        deletedPlaylists: store.read('playlists.json').deleted || {},
+        deviceId: `${process.platform}-${app.getVersion()}`,
+      }));
+    }
+    const s = store.read('settings.json');
+    s.lastSyncAt = Date.now();
+    store.write('settings.json', s);
+    send('sync:done', { at: s.lastSyncAt });
+    return { ok: true, at: s.lastSyncAt };
+  } catch (err) {
+    send('sync:error', { error: String(err.message || err) });
+    return { ok: false, error: String(err.message || err) };
+  }
+}
+
+function scheduleSync() {
+  clearInterval(syncTimer);
+  const settings = store.read('settings.json');
+  if (!settings.driveSync || !drive.isConnected()) return;
+  const minutes = Math.max(5, Number(settings.syncMinutes) || 15);
+  syncTimer = setInterval(() => { runSync({ upload: true }).catch(() => {}); }, minutes * 60000);
+}
+
+/** يضع طابعًا زمنيًا لتغييرات المستخدم كي تُدمج المزامنة بشكل صحيح. */
+function stamp(map, id) {
+  const m = map || {};
+  m[id] = Date.now();
+  return m;
 }
 
 async function addFolders(folders) {
@@ -338,6 +506,7 @@ function registerIPC() {
   handle('user:favorite', (id, on) => {
     const u = store.read('userdata.json');
     if (on) u.favorites[id] = true; else delete u.favorites[id];
+    u.favAt = stamp(u.favAt, id);
     store.write('userdata.json', u);
     return !!u.favorites[id];
   });
@@ -345,6 +514,7 @@ function registerIPC() {
     const u = store.read('userdata.json');
     const n = Math.max(0, Math.min(5, Number(stars) || 0));
     if (n) u.ratings[id] = n; else delete u.ratings[id];
+    u.ratedAt = stamp(u.ratedAt, id);
     store.write('userdata.json', u);
     return n;
   });
@@ -361,10 +531,32 @@ function registerIPC() {
     const u = store.read('userdata.json');
     const cur = u.overrides[id] || {};
     const next = { ...cur, ...(patch || {}) };
-    for (const k of Object.keys(next)) if (next[k] === '' || next[k] == null) delete next[k];
-    if (Object.keys(next).length) u.overrides[id] = next; else delete u.overrides[id];
+    for (const k of Object.keys(next)) {
+      if (k === 'at') continue;
+      if (next[k] === '' || next[k] == null) delete next[k];
+    }
+    const keys = Object.keys(next).filter((k) => k !== 'at');
+    if (keys.length) { next.at = Date.now(); u.overrides[id] = next; } else delete u.overrides[id];
     store.write('userdata.json', u);
     return u.overrides[id] || null;
+  });
+
+  /** تعديل جماعي للوسوم على مجموعة أغانٍ. */
+  handle('user:bulkOverride', (ids, patch) => {
+    const u = store.read('userdata.json');
+    const clean = {};
+    for (const [k, v] of Object.entries(patch || {})) {
+      if (v === '' || v == null) continue;
+      clean[k] = k === 'year' ? Number(v) || 0 : v;
+    }
+    if (!Object.keys(clean).length) throw new Error('EMPTY_PATCH');
+    let n = 0;
+    for (const id of ids || []) {
+      u.overrides[id] = { ...(u.overrides[id] || {}), ...clean, at: Date.now() };
+      n++;
+    }
+    store.write('userdata.json', u);
+    return { updated: n };
   });
   handle('user:clearHistory', () => {
     const u = store.read('userdata.json');
@@ -393,6 +585,8 @@ function registerIPC() {
   handle('playlist:delete', (id) => {
     const db = store.read('playlists.json');
     db.items = db.items.filter((p) => p.id !== id);
+    db.deleted = db.deleted || {};
+    db.deleted[id] = Date.now();      // شاهد حذف كي لا تعود القائمة من المزامنة
     store.write('playlists.json', db);
     return true;
   });
@@ -592,10 +786,177 @@ function registerIPC() {
     return text;
   });
 
+  // — Google Drive
+  handle('drive:status', async () => {
+    const settings = store.read('settings.json');
+    const connected = drive.isConnected();
+    let account = null;
+    if (connected) { try { account = await drive.about(); } catch { account = null; } }
+    const lib = store.read('library.json');
+    const driveTracks = Object.values(lib.tracks).filter((t) => t.source === 'drive');
+    return {
+      hasClient: drive.hasClient(),
+      connected,
+      account,
+      folders: settings.driveFolders || [],
+      tracks: driveTracks.length,
+      untagged: driveTracks.filter((t) => !t.tagged).length,
+      cache: await drive.cacheStats(),
+      sync: { enabled: !!settings.driveSync, lastAt: settings.lastSyncAt || 0, minutes: settings.syncMinutes || 15 },
+    };
+  });
+  handle('drive:setClient', (clientId, clientSecret) => drive.setClient({ clientId, clientSecret }));
+  handle('drive:connect', async () => {
+    const res = await drive.connect();
+    scheduleSync();
+    return res;
+  });
+  handle('drive:disconnect', () => {
+    drive.disconnect();
+    clearInterval(syncTimer);
+    return true;
+  });
+  handle('drive:listFolder', (folderId) => drive.listFolder(folderId || 'root'));
+  handle('drive:addFolder', async (folderId, name) => {
+    const settings = store.read('settings.json');
+    settings.driveFolders = settings.driveFolders || [];
+    if (!settings.driveFolders.some((f) => f.id === folderId)) {
+      settings.driveFolders.push({ id: folderId, name: name || await drive.folderName(folderId) });
+      store.write('settings.json', settings);
+      await store.flush('settings.json');
+    }
+    return runDriveScan();
+  });
+  handle('drive:removeFolder', async (folderId) => {
+    const settings = store.read('settings.json');
+    settings.driveFolders = (settings.driveFolders || []).filter((f) => f.id !== folderId);
+    store.write('settings.json', settings);
+    await store.flush('settings.json');
+    return runDriveScan();
+  });
+  handle('drive:scan', () => runDriveScan());
+  handle('drive:enrich', (limit) => enrichDriveTags(limit || 0));
+  handle('drive:cacheStats', () => drive.cacheStats());
+  handle('drive:clearCache', () => drive.clearCache());
+  handle('drive:pin', async (ids) => {
+    const lib = store.read('library.json');
+    const targets = (ids || []).map((id) => lib.tracks[id]).filter((t) => t && t.source === 'drive');
+    let done = 0;
+    for (const t of targets) {
+      // eslint-disable-next-line no-await-in-loop
+      await drive.download(t.driveId, t.ext, ({ received, total }) => {
+        send('drive:pinProgress', { id: t.id, received, total, done, count: targets.length });
+      });
+      done++;
+      send('drive:pinProgress', { id: t.id, done, count: targets.length, finished: true });
+    }
+    return { pinned: done };
+  });
+  handle('drive:unpin', async (ids) => {
+    const lib = store.read('library.json');
+    for (const id of ids || []) {
+      const t = lib.tracks[id];
+      if (t && t.source === 'drive') await drive.removeFromCache(t.driveId, t.ext);
+    }
+    return true;
+  });
+
+  // — المزامنة
+  handle('sync:now', () => runSync({ upload: true }));
+  handle('sync:set', async (enabled, minutes) => {
+    const settings = store.read('settings.json');
+    settings.driveSync = !!enabled;
+    if (minutes) settings.syncMinutes = Math.max(5, Number(minutes) || 15);
+    store.write('settings.json', settings);
+    await store.flush('settings.json');
+    scheduleSync();
+    return { enabled: settings.driveSync, minutes: settings.syncMinutes };
+  });
+
+  // — الأغلفة (مفردة وجماعية)
+  handle('art:pickFile', async () => {
+    const res = await dialog.showOpenDialog(win, {
+      title: 'اختر صورة الغلاف',
+      properties: ['openFile'],
+      filters: [{ name: 'صور', extensions: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'] }],
+    });
+    if (res.canceled || !res.filePaths[0]) return { canceled: true };
+    return { path: res.filePaths[0] };
+  });
+  handle('art:setFromFile', async (ids, filePath) => {
+    if (!ids || !ids.length) throw new Error('NO_TRACKS');
+    const name = await artwork.fromFile(filePath, ids[0]);
+    const u = store.read('userdata.json');
+    u.artOverrides = u.artOverrides || {};
+    for (const id of ids) u.artOverrides[id] = { art: name, at: Date.now() };
+    store.write('userdata.json', u);
+    await store.flush('userdata.json');
+    send('library:updated', libraryPayload());
+    return { art: name, count: ids.length };
+  });
+  handle('art:setFromUrl', async (ids, url) => {
+    if (!ids || !ids.length) throw new Error('NO_TRACKS');
+    const name = await artwork.fromUrl(url, ids[0]);
+    const u = store.read('userdata.json');
+    u.artOverrides = u.artOverrides || {};
+    for (const id of ids) u.artOverrides[id] = { art: name, at: Date.now() };
+    store.write('userdata.json', u);
+    await store.flush('userdata.json');
+    send('library:updated', libraryPayload());
+    return { art: name, count: ids.length };
+  });
+  handle('art:clear', async (ids) => {
+    const u = store.read('userdata.json');
+    u.artOverrides = u.artOverrides || {};
+    for (const id of ids || []) delete u.artOverrides[id];
+    store.write('userdata.json', u);
+    await store.flush('userdata.json');
+    send('library:updated', libraryPayload());
+    return true;
+  });
+  /** جلب الأغلفة الناقصة من الإنترنت لمجموعة أغانٍ، مع تقدّم مباشر. */
+  handle('art:fetchMissing', async (ids) => {
+    const lib = store.read('library.json');
+    const u = store.read('userdata.json');
+    const targets = (ids || []).map((id) => lib.tracks[id])
+      .filter((t) => t && !t.art && !(u.artOverrides || {})[t.id]);
+    let found = 0; let done = 0;
+    for (const t of targets) {
+      try {
+        const ov = (u.overrides || {})[t.id] || {};
+        // eslint-disable-next-line no-await-in-loop
+        const name = await online.fetchArtwork({
+          artist: ov.artist || t.albumArtist || t.artist,
+          album: ov.album || t.album,
+          title: ov.title || t.title,
+          artDir,
+        });
+        if (name) {
+          const fresh = store.read('library.json');
+          const albumKey = `${t.albumArtist || t.artist}|${t.album}`;
+          for (const other of Object.values(fresh.tracks)) {
+            if (!other.art && other.album && `${other.albumArtist || other.artist}|${other.album}` === albumKey) {
+              other.art = name;
+            }
+          }
+          if (fresh.tracks[t.id]) fresh.tracks[t.id].art = name;
+          store.write('library.json', fresh);
+          found++;
+        }
+      } catch { /* نكمل على البقية */ }
+      done++;
+      send('art:progress', { done, total: targets.length, found });
+    }
+    await store.flush('library.json');
+    send('library:updated', libraryPayload());
+    return { found, checked: done };
+  });
+
   // — أدوات مساعدة للواجهة
   handle('util:audioUrl', (id) => {
     const t = getTrack(id);
     if (!t) throw new Error('NOT_FOUND');
+    if (t.source === 'drive') return `liwa://drive/${t.driveId}.${t.ext || 'mp3'}`;
     return `liwa://audio/${encodePath(t.path)}`;
   });
   handle('util:fileUrl', (p) => pathToFileURL(p).href);
@@ -630,11 +991,20 @@ if (!singleInstance) {
     dataDir = path.join(app.getPath('userData'), 'data');
     artDir = path.join(app.getPath('userData'), 'artwork');
     lyricsDir = path.join(app.getPath('userData'), 'lyrics');
+    driveCacheDir = path.join(app.getPath('userData'), 'drive-cache');
     await fsp.mkdir(artDir, { recursive: true });
     await fsp.mkdir(lyricsDir, { recursive: true });
+    await fsp.mkdir(driveCacheDir, { recursive: true });
 
     store = new Store(dataDir);
     ai = new AI({ dir: dataDir, safeStorage });
+    drive = new Drive({
+      dir: dataDir,
+      cacheDir: driveCacheDir,
+      safeStorage,
+      openExternal: (url) => shell.openExternal(url),
+    });
+    artwork = new Artwork({ artDir, nativeImage });
     nativeTheme.themeSource = store.read('settings.json').theme === 'light' ? 'light' : 'dark';
 
     registerProtocol();
@@ -642,6 +1012,12 @@ if (!singleInstance) {
     createWindow();
     registerMediaKeys();
     setupWatchers();
+
+    // مزامنة أولى بعد ثوانٍ من الإقلاع ثم على فترات
+    if (drive.isConnected() && store.read('settings.json').driveSync) {
+      setTimeout(() => { runSync({ upload: true }).catch(() => {}); }, 6000);
+      scheduleSync();
+    }
   });
 
   app.on('window-all-closed', async () => {
@@ -651,6 +1027,12 @@ if (!singleInstance) {
   });
 
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });
-  app.on('before-quit', async () => { await store?.flushAll(); });
+  app.on('before-quit', async () => {
+    clearInterval(syncTimer);
+    await store?.flushAll();
+    if (drive && drive.isConnected() && store.read('settings.json').driveSync) {
+      await runSync({ upload: true }).catch(() => {});
+    }
+  });
 }
 
