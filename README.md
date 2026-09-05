@@ -75,21 +75,30 @@
 نسخة هاتف تشغّل **نفس مكتبتك من درايف**، وتتزامن تلقائيًا مع نسخة الكمبيوتر
 (التقييمات، المفضلة، قوائم التشغيل، تعديلات البيانات).
 
-**[⬇ تحميل LiwaMusic.apk](https://github.com/almarar88/liwamusic/releases/download/android-v1.1.0/LiwaMusic.apk)**
+**[⬇ تحميل LiwaMusic.apk](https://github.com/almarar88/liwamusic/releases/download/android-v1.1.1/LiwaMusic.apk)**
 · [كل إصدارات الأندرويد](https://github.com/almarar88/liwamusic/releases?q=android-v)
 
 ### الإعداد أول مرة
 
-الهاتف يحتاج معرّف OAuth من نوع **Android** (منفصل عن معرّف الكمبيوتر):
+التطبيق يقبل نوعين من معرّفات OAuth — اختر ما يناسبك:
 
-1. في نفس مشروع Google Cloud: **Credentials ← Create credentials ← OAuth client ID**.
-2. النوع: **Android**.
-3. **Package name**: `com.liwamusic.app`
-4. **SHA-1 certificate fingerprint**:
+**(أ) نفس معرّف Desktop المستخدم على الكمبيوتر — بلا إعداد إضافي:**
+ألصق **Client ID** و**Client secret** في التطبيق. يستخدم التطبيق تلقائيًا مخطط
+جوجل المعكوس (`com.googleusercontent.apps.<معرّفك>`) وهو ما تقبله عملاء Desktop
+على الجوال — فلا تحتاج بصمة SHA-1 ولا معرّفًا ثالثًا.
+
+> المخطط يُسجَّل في مانيفست أندرويد عند البناء. لمعرّف مختلف عن الافتراضي، ابنِ
+> الـ APK بمتغيّر `GOOGLE_REVERSED_SCHEME=com.googleusercontent.apps.<معرّفك>`.
+
+**(ب) معرّف مخصّص من نوع Android — بلا Client secret:**
+
+1. **Credentials ← Create credentials ← OAuth client ID** ← النوع **Android**.
+2. **Package name**: `com.liwamusic.app`
+3. **SHA-1 certificate fingerprint**:
    ```
    74:74:49:BA:ED:95:2F:A8:C6:65:AB:5D:3E:3A:27:D5:81:26:19:2C
    ```
-5. انسخ **Client ID** وألصقه في التطبيق عند أول تشغيل، ثم سجّل الدخول واختر مجلد الأغاني.
+4. ألصق **Client ID** فقط في التطبيق واترك حقل السرّ فارغًا.
 
 > **عن بصمة SHA-1:** هذه بصمة مفتاح التوقيع المرفق في `mobile/signing/` — وُضع في
 > المستودع كي تبقى البصمة ثابتة مع كل بناء (لو تغيّر المفتاح لتوقّف تسجيل الدخول).
