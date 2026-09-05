@@ -16,12 +16,12 @@
 
 [![آخر إصدار](https://img.shields.io/github/v/release/almarar88/liwamusic?label=%D8%A2%D8%AE%D8%B1%20%D8%A5%D8%B5%D8%AF%D8%A7%D8%B1&color=7c5cff)](https://github.com/almarar88/liwamusic/releases/latest)
 
-### **[⬇ تحميل LiwaMusic 1.1.0 لويندوز (64-بت)](https://github.com/almarar88/liwamusic/releases/download/v1.1.0/LiwaMusic-Setup-1.1.0.exe)**
+### **[⬇ تحميل LiwaMusic 1.1.1 لويندوز (64-بت)](https://github.com/almarar88/liwamusic/releases/download/v1.1.1/LiwaMusic-Setup-1.1.1.exe)**
 
-`LiwaMusic-Setup-1.1.0.exe` · ‎~90 ميجابايت · ويندوز 10/11 (x64)
+`LiwaMusic-Setup-1.1.1.exe` · ‎~90 ميجابايت · ويندوز 10/11 (x64)
 · [آخر إصدار دائمًا](https://github.com/almarar88/liwamusic/releases/latest)
 
-بعد التنزيل: شغّل `LiwaMusic-Setup-1.1.0.exe` واتبع خطوات التثبيت (يُثبَّت
+بعد التنزيل: شغّل `LiwaMusic-Setup-1.1.1.exe` واتبع خطوات التثبيت (يُثبَّت
 للمستخدم الحالي بلا صلاحيات مدير)، ثم افتح **LiwaMusic** من قائمة ابدأ أو من
 أيقونة سطح المكتب.
 
@@ -47,6 +47,19 @@
 4. **Credentials ← Create credentials ← OAuth client ID** ← النوع **Desktop app**.
 5. انسخ **Client ID** (و Client secret إن ظهر) وألصقهما في: LiwaMusic ← **Google Drive**.
 6. اضغط **ربط الحساب** ← وافق في المتصفح ← ثم **تصفّح واختيار مجلد** الأغاني.
+
+### أي نوع عميل تختار؟ (مهم)
+
+جوجل تفرض قيودًا مختلفة على كل نوع، والخطأ هنا هو السبب الأول لفشل الربط:
+
+| النوع | يصلح لـ | ملاحظات |
+|---|---|---|
+| **Desktop app** | نسخة الويندوز | **الأنسب**: يقبل أي منفذ محلي تلقائيًا، وبلا حاجة لتسجيل روابط. |
+| **Android** | تطبيق الهاتف | **إلزامي للهاتف**: يحتاج اسم الحزمة `com.liwamusic.app` وبصمة SHA-1. |
+| **Web application** | نسخة الويندوز فقط | يعمل بشرطين: أضف `http://127.0.0.1:8765` في **Authorized redirect URIs**، وألصق **Client secret** في التطبيق. **لا يصلح للهاتف إطلاقًا** لأن جوجل ترفض المخططات المخصّصة لهذا النوع (`Custom scheme URIs are not allowed for 'WEB' client type`). |
+
+> نسخة الويندوز تستمع على المنفذ الثابت **8765** أولًا (فتعمل مع عملاء Web
+> المسجَّلين)، وتسقط إلى منفذ عشوائي إن كان مشغولًا (عملاء Desktop يقبلون ذلك).
 
 > شاشة «Google hasn't verified this app» طبيعية لأن التطبيق خاص بك:
 > **Advanced ← Go to … (unsafe)**.

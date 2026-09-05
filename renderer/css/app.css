@@ -573,3 +573,13 @@ body.mini .tb-left { min-width: auto; }
 .steps li::marker { color: rgb(var(--accent)); font-weight: 700; }
 .steps b { color: var(--text); background: var(--surface2); padding: 1px 6px; border-radius: 5px; font-weight: 600; }
 .lnk { color: rgb(var(--accent)); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ملاحظة إرشادية داخل صفحة درايف */
+.note { background: rgb(var(--accent) / .08); border: 1px solid rgb(var(--accent) / .22); border-radius: 12px; padding: 12px 14px; font-size: 12.5px; line-height: 1.8; }
+.note b { color: rgb(var(--accent)); }
+.note p { color: var(--muted); margin: 4px 0 8px; }
+.note code, code.copyable {
+  display: inline-block; direction: ltr; background: var(--surface2); border: 1px solid var(--line);
+  border-radius: 8px; padding: 6px 10px; font-family: ui-monospace, Consolas, monospace; font-size: 12.5px;
+  user-select: all; cursor: text;
+}

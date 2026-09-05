@@ -128,8 +128,15 @@ class Drive {
     return { verifier, challenge };
   }
 
+  /** المنفذ المحلي المفضّل — ثابت كي يمكن تسجيله مسبقًا لعملاء «Web application». */
+  static get PREFERRED_PORT() { return 8765; }
+
+  /** رابط إعادة التوجيه الذي يجب تسجيله في Google Cloud لعميل من نوع Web. */
+  static redirectUriFor(port) { return `http://127.0.0.1:${port}`; }
+
   /**
-   * تسجيل الدخول: يفتح المتصفح، ويستقبل الرد على منفذ محلي عشوائي.
+   * تسجيل الدخول: يفتح المتصفح، ويستقبل الرد على منفذ محلي.
+   * يجرّب منفذًا ثابتًا أولًا (لتوافق عملاء Web) ثم يسقط إلى منفذ عشوائي.
    * يعيد وعدًا ينتهي عند الموافقة أو الرفض أو انتهاء المهلة.
    */
   connect({ timeoutMs = 300000 } = {}) {
@@ -189,13 +196,24 @@ h1{font-size:20px;margin:0 0 8px;color:${ok ? '#7c5cff' : '#f45c5c'}}p{color:#9a
 
       const timer = setTimeout(() => done(reject, new DriveError('AUTH_TIMEOUT', 'AUTH_TIMEOUT')), timeoutMs);
 
-      server.on('error', (e) => done(reject, e));
-      server.listen(0, '127.0.0.1', () => {
+      let triedFallback = false;
+      server.on('error', (e) => {
+        // المنفذ المفضّل مشغول؟ نسقط إلى منفذ عشوائي بدل الفشل
+        if (e && e.code === 'EADDRINUSE' && !triedFallback) {
+          triedFallback = true;
+          server.listen(0, '127.0.0.1');
+          return;
+        }
+        done(reject, e);
+      });
+      server.on('listening', () => {
         this._server = server;
-        const redirectUri = `http://127.0.0.1:${server.address().port}`;
+        const redirectUri = Drive.redirectUriFor(server.address().port);
+        this.lastRedirectUri = redirectUri;
         const authUrl = Drive.buildAuthUrl({ clientId: cred.clientId, redirectUri, challenge, state });
         this.openExternal(authUrl);
       });
+      server.listen(Drive.PREFERRED_PORT, '127.0.0.1');
     });
   }
 

@@ -796,6 +796,7 @@ function registerIPC() {
     const driveTracks = Object.values(lib.tracks).filter((t) => t.source === 'drive');
     return {
       hasClient: drive.hasClient(),
+      redirectUri: Drive.redirectUriFor(Drive.PREFERRED_PORT),
       connected,
       account,
       folders: settings.driveFolders || [],

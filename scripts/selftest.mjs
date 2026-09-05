@@ -244,6 +244,9 @@ ok(au.searchParams.get('scope').includes('drive.readonly') && au.searchParams.ge
   'الصلاحيات: قراءة فقط + مجلد التطبيق');
 ok(!au.searchParams.get('scope').includes('drive.file') && !/auth\/drive\s/.test(au.searchParams.get('scope')),
   'بلا صلاحية تعديل أو حذف لملفات المستخدم');
+ok(Drive.PREFERRED_PORT === 8765, 'منفذ محلي ثابت يمكن تسجيله لعملاء Web');
+ok(Drive.redirectUriFor(8765) === 'http://127.0.0.1:8765', 'صيغة رابط إعادة التوجيه المسجَّل');
+ok(Drive.redirectUriFor(0) === 'http://127.0.0.1:0', 'اشتقاق الرابط من أي منفذ');
 const pk = Drive.pkce();
 ok(pk.verifier.length >= 43 && !/[+/=]/.test(pk.challenge), 'توليد PKCE بترميز base64url صالح');
 

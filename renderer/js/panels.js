@@ -433,6 +433,10 @@
           el('li', {}, 'انسخ ', el('b', { text: 'Client ID' }), ' (و Client secret إن ظهر) وألصقهما هنا.')),
         el('div', { class: 'form' }, el('label', {}, el('span', { text: 'Client ID' }), idInput),
           el('label', {}, el('span', { text: 'Client secret' }), secInput)),
+        el('div', { class: 'note' },
+          el('b', { text: 'عندك معرّف من نوع Web application؟' }),
+          el('p', { text: 'يعمل أيضًا، لكن أضف هذا الرابط في «Authorized redirect URIs» داخل إعدادات العميل، وألصق Client secret أعلاه:' }),
+          el('code', { class: 'copyable', text: st.redirectUri || 'http://127.0.0.1:8765' })),
         el('div', { class: 'row gap' },
           V().btn('حفظ ومتابعة', { kind: 'primary', onClick: () => app.driveSetClient(idInput.value, secInput.value) }),
           V().btn('فتح دليل جوجل', { onClick: () => app.openExternal('https://developers.google.com/workspace/guides/create-credentials#desktop-app') }))));
@@ -445,6 +449,9 @@
         el('h3', { text: 'الخطوة 2 — اربط حسابك' }),
         el('p', { class: 'muted', text: 'سيفتح متصفحك صفحة موافقة جوجل. الصلاحيات المطلوبة: قراءة ملفاتك فقط + مجلد صغير خاص بالتطبيق للمزامنة. لا صلاحية تعديل أو حذف.' }),
         el('p', { class: 'muted xs', text: 'إن ظهرت شاشة «Google hasn\'t verified this app» فهذا طبيعي لأن التطبيق خاص بك: اضغط Advanced ثم Go to … (unsafe).' }),
+        el('div', { class: 'note' },
+          el('p', { text: 'إن ظهر خطأ redirect_uri_mismatch فمعرّفك من نوع Web application — أضف هذا الرابط في «Authorized redirect URIs»:' }),
+          el('code', { class: 'copyable', text: st.redirectUri || 'http://127.0.0.1:8765' })),
         el('div', { class: 'row gap' },
           V().btn('ربط الحساب', { kind: 'primary', onClick: () => app.driveConnect() }),
           V().btn('تغيير معرّف العميل', { onClick: () => app.driveChangeClient() }))));
