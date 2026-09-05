@@ -6,3 +6,4 @@ dist/
 mobile/node_modules/
 mobile/android/
 mobile/*.apk
+!download/LiwaMusic.apk
