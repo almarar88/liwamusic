@@ -10,7 +10,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 const load = (rel) => import(pathToFileURL(path.join(root, rel)).href);
 
-const { buildAuthUrl, pkce, toTrack, trackIdFor, isAudio } = await load('www/js/drive.js');
+const { buildAuthUrl, pkce, toTrack, trackIdFor, isAudio, reversedScheme, redirectUriFor } = await load('www/js/drive.js');
 const { parseID3 } = await load('www/js/tags.js');
 const { mergeUserData, mergePlaylists, mergeStamped, buildPayload } = await load('www/js/store.js');
 
@@ -33,6 +33,17 @@ ok(url.searchParams.get('access_type') === 'offline', 'طلب رمز تحديث'
 const scope = url.searchParams.get('scope');
 ok(scope.includes('drive.readonly') && scope.includes('drive.appdata'), 'صلاحيات القراءة والمزامنة فقط');
 ok(!/auth\/drive(\s|$)/.test(scope), 'بلا صلاحية تعديل ملفات درايف');
+const REAL_ID = '341100058852-cfco9ltr8lu5jhvpepmtphkc03hl47g8.apps.googleusercontent.com';
+ok(reversedScheme(REAL_ID) === 'com.googleusercontent.apps.341100058852-cfco9ltr8lu5jhvpepmtphkc03hl47g8',
+  'اشتقاق مخطط جوجل المعكوس من معرّف العميل');
+ok(redirectUriFor(REAL_ID) === `${reversedScheme(REAL_ID)}:/oauth2redirect`, 'رابط التوجيه للمخطط المعكوس');
+ok(redirectUriFor('not-a-google-id') === 'com.liwamusic.app:/oauth2redirect', 'السقوط إلى مخطط اسم الحزمة');
+ok(reversedScheme('') === null, 'رفض معرّف فارغ');
+
+const manifestSrc = fs.readFileSync(path.join(root, 'scripts/patch-android.mjs'), 'utf8');
+ok(manifestSrc.includes('com.liwamusic.app') && manifestSrc.includes('com.googleusercontent.apps.'),
+  'المانيفست يسجّل المخططين معًا');
+
 const pk = await pkce();
 ok(pk.verifier.length >= 43 && !/[+/=]/.test(pk.challenge), 'توليد PKCE سليم بترميز base64url');
 

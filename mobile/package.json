@@ -1,6 +1,6 @@
 {
   "name": "liwamusic-mobile",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "LiwaMusic للهاتف — مشغل موسيقى من Google Drive · تم إنشاؤه عن طريق LiwaMusic",
   "private": true,
   "scripts": {

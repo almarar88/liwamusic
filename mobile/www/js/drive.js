@@ -35,6 +35,23 @@ export function trackIdFor(fileId) {
   return `d${h.toString(16)}${fileId.slice(-8)}`;
 }
 
+/**
+ * يشتق مخطط الرابط العميق من معرّف العميل (الصيغة القياسية لتطبيقات جوجل المثبَّتة):
+ * 123-abc.apps.googleusercontent.com  →  com.googleusercontent.apps.123-abc
+ * يعمل مع عملاء Android وDesktop على السواء.
+ */
+export function reversedScheme(clientId) {
+  const id = String(clientId || '').trim();
+  const m = /^(.+)\.apps\.googleusercontent\.com$/.exec(id);
+  return m ? `com.googleusercontent.apps.${m[1]}` : null;
+}
+
+/** رابط إعادة التوجيه المناسب لمعرّف العميل. */
+export function redirectUriFor(clientId, fallbackScheme = 'com.liwamusic.app') {
+  const rev = reversedScheme(clientId);
+  return `${rev || fallbackScheme}:/oauth2redirect`;
+}
+
 export async function pkce() {
   const verifier = b64url(crypto.getRandomValues(new Uint8Array(48)));
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
@@ -66,6 +83,8 @@ export class DriveClient {
 
   async clientId() { return (await this.store.get('drive.clientId')) || ''; }
   async setClientId(id) { await this.store.set('drive.clientId', String(id || '').trim()); }
+  async clientSecret() { return (await this.store.get('drive.clientSecret')) || ''; }
+  async setClientSecret(sec) { await this.store.set('drive.clientSecret', String(sec || '').trim()); }
   async refreshToken() { return (await this.store.get('drive.refresh')) || ''; }
   async isConnected() { return !!(await this.refreshToken()); }
 
@@ -77,6 +96,7 @@ export class DriveClient {
   /** يبادل رمز الموافقة برموز الوصول والتحديث. */
   async exchange({ code, verifier, redirectUri }) {
     const clientId = await this.clientId();
+    const secret = await this.clientSecret();
     const body = new URLSearchParams({
       client_id: clientId,
       code,
@@ -84,6 +104,7 @@ export class DriveClient {
       grant_type: 'authorization_code',
       redirect_uri: redirectUri,
     });
+    if (secret) body.set('client_secret', secret);
     const res = await fetch(TOKEN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -91,7 +112,7 @@ export class DriveClient {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error_description || data.error || `HTTP ${res.status}`);
-    if (!data.refresh_token) throw new Error('لم يصل رمز تحديث — تأكد أن نوع العميل «Android».');
+    if (!data.refresh_token) throw new Error('لم يصل رمز تحديث — تأكد من صحة المعرّف و«Client secret» إن كان العميل من نوع Desktop.');
     await this.store.set('drive.refresh', data.refresh_token);
     this.access = { token: data.access_token, expiresAt: Date.now() + (data.expires_in - 60) * 1000 };
     return true;
@@ -106,6 +127,8 @@ export class DriveClient {
       refresh_token: refresh,
       grant_type: 'refresh_token',
     });
+    const secret = await this.clientSecret();
+    if (secret) body.set('client_secret', secret);
     const res = await fetch(TOKEN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

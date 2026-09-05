@@ -1,12 +1,13 @@
 /* LiwaMusic للهاتف — الواجهة والمشغّل. تم إنشاؤه عن طريق LiwaMusic. */
 'use strict';
-import { DriveClient, buildAuthUrl, pkce, toTrack } from './drive.js';
+import { DriveClient, buildAuthUrl, pkce, toTrack, redirectUriFor } from './drive.js';
 import {
   store, audioCache, mergeUserData, mergePlaylists, buildPayload, DEFAULT_USERDATA,
 } from './store.js';
 import { parseID3 } from './tags.js';
 
-const REDIRECT_URI = 'com.liwamusic.app:/oauth2redirect';
+// رابط إعادة التوجيه يُشتق من معرّف العميل (مخطط جوجل المعكوس) مع بديل باسم الحزمة
+const redirectUri = (clientId) => redirectUriFor(clientId, 'com.liwamusic.app');
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
 const cap = () => (window.Capacitor && window.Capacitor.Plugins) || {};
@@ -131,8 +132,9 @@ async function startAuth() {
   if (!state.clientId) { toast('أدخل معرّف العميل أولًا', 'warn'); return; }
   const { verifier, challenge } = await pkce();
   const st = Math.random().toString(36).slice(2);
-  await store.set('auth.pending', { verifier, state: st });
-  const url = buildAuthUrl({ clientId: state.clientId, redirectUri: REDIRECT_URI, challenge, state: st });
+  const uri = redirectUri(state.clientId);
+  await store.set('auth.pending', { verifier, state: st, uri });
+  const url = buildAuthUrl({ clientId: state.clientId, redirectUri: uri, challenge, state: st });
   const { Browser } = cap();
   if (Browser) await Browser.open({ url, presentationStyle: 'popover' });
   else window.open(url, '_blank');
@@ -140,7 +142,8 @@ async function startAuth() {
 
 async function handleRedirect(rawUrl) {
   try {
-    const u = new URL(rawUrl.replace('com.liwamusic.app:/', 'https://liwamusic.local/'));
+    // نحوّل أي مخطط مخصّص إلى https كي يحلّله URL بشكل موحّد
+    const u = new URL(String(rawUrl).replace(/^[^:]+:\/+/, 'https://liwamusic.local/'));
     const code = u.searchParams.get('code');
     const returnedState = u.searchParams.get('state');
     const err = u.searchParams.get('error');
@@ -151,7 +154,7 @@ async function handleRedirect(rawUrl) {
     const pending = await store.get('auth.pending');
     if (!pending || pending.state !== returnedState) { toast('طلب غير مطابق', 'err'); return; }
     loading('جارٍ إتمام تسجيل الدخول…');
-    await drive.exchange({ code, verifier: pending.verifier, redirectUri: REDIRECT_URI });
+    await drive.exchange({ code, verifier: pending.verifier, redirectUri: pending.uri || redirectUri(state.clientId) });
     await store.remove('auth.pending');
     state.connected = true;
     state.account = await drive.about().catch(() => null);
@@ -700,12 +703,14 @@ function wire() {
     const v = $('#clientId').value.trim();
     if (!v) { toast('ألصق معرّف العميل', 'warn'); return; }
     await drive.setClientId(v);
+    await drive.setClientSecret($('#clientSecret').value.trim());
     state.clientId = v;
     toast('حُفظ ✓', 'ok');
     render();
   };
   $('#btnChangeClient').onclick = async () => {
     await drive.setClientId('');
+    await drive.setClientSecret('');
     state.clientId = '';
     render();
   };

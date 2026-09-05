@@ -7,31 +7,38 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const ANDROID = process.argv[2] || 'android';
-const SCHEME = 'com.liwamusic.app';
+// مخططان: اسم الحزمة (لعملاء Android)، ومخطط جوجل المعكوس (لعملاء Desktop).
+// الثاني يُشتق من معرّف العميل ويمكن ضبطه عبر GOOGLE_REVERSED_SCHEME عند البناء.
+const SCHEMES = [
+  'com.liwamusic.app',
+  process.env.GOOGLE_REVERSED_SCHEME
+    || 'com.googleusercontent.apps.341100058852-cfco9ltr8lu5jhvpepmtphkc03hl47g8',
+].filter(Boolean);
 
 function read(p) { return fs.readFileSync(p, 'utf8'); }
 function write(p, s) { fs.writeFileSync(p, s, 'utf8'); console.log('✓', path.relative('.', p)); }
 
-// 1) الرابط العميق لاستقبال رد جوجل بعد الموافقة
+// 1) الروابط العميقة لاستقبال رد جوجل بعد الموافقة
 const manifestPath = path.join(ANDROID, 'app/src/main/AndroidManifest.xml');
 let manifest = read(manifestPath);
-if (manifest.includes(`android:scheme="${SCHEME}"`)) {
-  console.log('• الرابط العميق موجود مسبقًا');
-} else {
+let added = 0;
+for (const scheme of SCHEMES) {
+  if (manifest.includes(`android:scheme="${scheme}"`)) continue;
   const filter = `
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="${SCHEME}" />
+                <data android:scheme="${scheme}" />
             </intent-filter>
 `;
-  const marker = '</activity>';
-  const at = manifest.indexOf(marker);
+  const at = manifest.indexOf('</activity>');
   if (at === -1) throw new Error('لم يُعثر على وسم </activity> في AndroidManifest');
   manifest = manifest.slice(0, at) + filter + '        ' + manifest.slice(at);
-  write(manifestPath, manifest);
+  added++;
 }
+if (added) write(manifestPath, manifest);
+console.log(`• مخططات الروابط العميقة: ${SCHEMES.join(' , ')}`);
 
 // 2) اسم التطبيق كما يظهر تحت الأيقونة
 const stringsPath = path.join(ANDROID, 'app/src/main/res/values/strings.xml');

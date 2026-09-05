@@ -22,8 +22,9 @@
 
       <div class="card" id="stepClient">
         <h3>1 · معرّف عميل أندرويد</h3>
-        <p class="muted sm">أنشئ في Google Cloud Console معرّف OAuth من نوع <b>Android</b> باسم الحزمة <code>com.liwamusic.app</code> وبصمة SHA-1 الموجودة في دليل المشروع، ثم ألصق المعرّف هنا.</p>
+        <p class="muted sm">ألصق معرّف OAuth من Google Cloud Console. يقبل التطبيق نوعين: <b>Desktop app</b> (ألصق معه Client secret) أو <b>Android</b> (باسم الحزمة <code>com.liwamusic.app</code> وبصمة SHA-1 من دليل المشروع، وبلا سرّ).</p>
         <input id="clientId" type="text" inputmode="url" placeholder="…apps.googleusercontent.com" autocomplete="off" />
+        <input id="clientSecret" type="password" placeholder="Client secret (لعملاء Desktop فقط)" autocomplete="off" />
         <button class="btn primary" id="saveClient">حفظ</button>
       </div>
 
