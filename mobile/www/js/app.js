@@ -26,7 +26,8 @@ const fmtTime = (s) => {
 const fmtDur = (s) => {
   if (!Number.isFinite(s) || s <= 0) return '—';
   const h = Math.floor(s / 3600); const m = Math.round((s % 3600) / 60);
-  return h ? `${h}س ${m}د` : `${m || 1}د`;
+  // كلمات كاملة كي لا يقلب المحرّك ثنائي الاتجاه ترتيب الرقم والحرف
+  return h ? `${h} ساعة و${m} دقيقة` : `${m || 1} دقيقة`;
 };
 const fmtSize = (b) => {
   const u = ['B', 'KB', 'MB', 'GB']; let v = b || 0; let i = 0;

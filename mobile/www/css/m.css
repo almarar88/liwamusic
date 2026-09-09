@@ -464,7 +464,8 @@ input:focus{border-color:rgba(255,255,255,.45);background:rgba(0,0,0,.34)}
 /* ————— البحث */
 .searchbar{position:relative;margin-bottom:14px}
 .searchbar input{padding-inline-start:42px;border-radius:999px}
-.searchbar .mag{position:absolute;inset-inline-start:15px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:15px}
+.searchbar .mag{position:absolute;z-index:1;pointer-events:none;inset-inline-start:15px;top:50%;transform:translateY(-50%);color:var(--faint);display:flex}
+.searchbar .mag svg{width:17px;height:17px}
 
 /* ————— الإعدادات */
 .settings{display:flex;flex-direction:column;gap:11px}
