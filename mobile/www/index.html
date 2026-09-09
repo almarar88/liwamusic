@@ -4,24 +4,26 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
 <meta name="color-scheme" content="dark" />
-<meta name="theme-color" content="#0b0b12" />
+<meta name="theme-color" content="#584a5f" />
 <title>LiwaMusic</title>
 <link rel="stylesheet" href="css/m.css" />
 </head>
 <body>
 
-<!-- الشاشات -->
+<!-- هالات لونية تتبع غلاف الأغنية الحالية -->
+<div id="aura"><i></i><i></i><i></i></div>
+
 <main id="screens">
 
-  <!-- تسجيل الدخول / الإعداد -->
+  <!-- ————— الإعداد -->
   <section class="screen" id="scrSetup">
     <div class="setup">
       <div class="logo">♫</div>
       <h1>LiwaMusic</h1>
-      <p class="muted">شغّل مكتبتك من Google Drive على هاتفك، بنفس التقييمات والقوائم المزامنة مع الكمبيوتر.</p>
+      <p>شغّل مكتبتك من Google Drive على هاتفك، بنفس التقييمات والقوائم المزامنة مع الكمبيوتر.</p>
 
       <div class="card" id="stepClient">
-        <h3>1 · معرّف عميل أندرويد</h3>
+        <h3>1 · معرّف عميل جوجل</h3>
         <p class="muted sm">ألصق معرّف OAuth من Google Cloud Console. يقبل التطبيق نوعين: <b>Desktop app</b> (ألصق معه Client secret) أو <b>Android</b> (باسم الحزمة <code>com.liwamusic.app</code> وبصمة SHA-1 من دليل المشروع، وبلا سرّ).</p>
         <input id="clientId" type="text" inputmode="url" placeholder="…apps.googleusercontent.com" autocomplete="off" />
         <input id="clientSecret" type="password" placeholder="Client secret (لعملاء Desktop فقط)" autocomplete="off" />
@@ -44,39 +46,86 @@
     </div>
   </section>
 
-  <!-- المكتبة -->
-  <section class="screen" id="scrLibrary" hidden>
-    <header class="top">
-      <div class="top-row">
-        <h2 id="libTitle">المكتبة</h2>
-        <button class="icon" id="btnSync" title="مزامنة">⟳</button>
+  <!-- ————— الرئيسية -->
+  <section class="screen" id="scrHome" hidden>
+    <div class="top">
+      <button class="avatar" id="homeAvatar">♪</button>
+      <div class="who">
+        <p class="hi" id="homeHi">أهلًا بك</p>
+        <h2 id="homeName">مكتبتك</h2>
       </div>
-      <div class="search"><input id="q" type="search" placeholder="ابحث…" /></div>
+      <button class="round bell" id="btnBell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><i class="dot" id="bellDot" hidden></i></button>
+    </div>
+
+    <div class="seg" id="homeSeg">
+      <button data-seg="library" class="on">مكتبتي</button>
+      <button data-seg="activity">نشاطي</button>
+    </div>
+
+    <!-- قسم المكتبة -->
+    <div id="segLibrary">
+      <div class="rail" id="heroRail"></div>
       <div class="chips" id="libChips"></div>
-    </header>
-    <div class="list" id="trackList"></div>
+      <div id="libBody"></div>
+    </div>
+
+    <!-- قسم النشاط -->
+    <div id="segActivity" hidden>
+      <div class="week-head">
+        <button class="round sm" id="weekPrev">‹</button>
+        <h3 id="weekTitle">هذا الأسبوع</h3>
+        <button class="round sm" id="weekNext">›</button>
+      </div>
+      <div class="week" id="weekStrip"></div>
+      <div class="stats" id="statCards"></div>
+      <div class="sec-head"><h3>جلسات اليوم</h3><span id="todayLabel"></span></div>
+      <div id="todayList"></div>
+    </div>
   </section>
 
-  <!-- الألبومات -->
+  <!-- ————— الألبومات -->
   <section class="screen" id="scrAlbums" hidden>
-    <header class="top"><div class="top-row"><h2>الألبومات</h2></div></header>
+    <div class="top">
+      <div class="who"><p class="hi">تصفّح</p><h2>الألبومات والفنانون</h2></div>
+      <button class="round" id="albumsMode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></svg></button>
+    </div>
+    <div class="chips" id="browseChips"></div>
     <div class="grid" id="albumGrid"></div>
   </section>
 
-  <!-- المفضلة -->
+  <!-- ————— المفضلة -->
   <section class="screen" id="scrFav" hidden>
-    <header class="top"><div class="top-row"><h2>المفضلة</h2></div></header>
-    <div class="list" id="favList"></div>
+    <div class="top">
+      <div class="who"><p class="hi">محفوظاتك</p><h2>المفضلة والقوائم</h2></div>
+      <button class="round" id="btnNewPlaylist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+    <div class="chips" id="favChips"></div>
+    <div id="favBody"></div>
   </section>
 
-  <!-- الإعدادات -->
+  <!-- ————— البحث -->
+  <section class="screen" id="scrSearch" hidden>
+    <div class="top"><div class="who"><p class="hi">ابحث في مكتبتك</p><h2>بحث</h2></div></div>
+    <div class="searchbar"><span class="mag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span><input id="q" type="search" placeholder="اسم أغنية أو فنان أو ألبوم…" /></div>
+    <div class="chips" id="searchChips"></div>
+    <div id="searchBody"><div class="empty">اكتب للبحث — أو اختر من الفلاتر أعلاه.</div></div>
+  </section>
+
+  <!-- ————— الإعدادات -->
   <section class="screen" id="scrSettings" hidden>
-    <header class="top"><div class="top-row"><h2>الإعدادات</h2></div></header>
+    <div class="top"><div class="who"><p class="hi">التطبيق</p><h2>الإعدادات</h2></div>
+      <button class="round" id="btnSync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button></div>
     <div class="settings" id="settingsBody"></div>
   </section>
 </main>
 
-<!-- المشغّل المصغّر -->
+<!-- أزرار عائمة (شاشة النشاط) -->
+<div class="fabs" id="fabs" hidden>
+  <button class="fab" id="fabGoal" title="الهدف اليومي"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+  <button class="fab accent" id="fabPlay" title="تشغيل مقترح">▶</button>
+</div>
+
+<!-- ————— المشغّل المصغّر -->
 <div class="mini" id="mini" hidden>
   <div class="mini-bar" id="miniBar"></div>
   <div class="mini-row">
@@ -85,52 +134,96 @@
       <div class="mini-title" id="miniTitle">—</div>
       <div class="mini-sub muted" id="miniSub">—</div>
     </div>
-    <button class="icon big" id="miniPlay">▶</button>
-    <button class="icon" id="miniNext">⏭</button>
+    <button class="round" id="miniPlay">▶</button>
+    <button class="round sm" id="miniNext">⏭</button>
   </div>
 </div>
 
-<!-- شاشة التشغيل الكاملة -->
+<!-- ————— شاشة التشغيل -->
 <section class="player" id="player" hidden>
   <div class="p-head">
-    <button class="icon" id="pClose">▾</button>
+    <button class="round" id="pClose">▾</button>
     <span class="p-from" id="pFrom">من Google Drive</span>
-    <button class="icon" id="pMenu">⋯</button>
+    <button class="round" id="pMenu">⋯</button>
   </div>
-  <div class="p-art" id="pArt"><span>♪</span></div>
+
+  <div class="p-stage" id="pStage">
+    <div class="sym">♪</div>
+    <div class="veil"></div>
+    <div class="p-corner">
+      <button class="round" id="pBack">‹</button>
+      <button class="round" id="pFav">♡</button>
+    </div>
+    <div class="p-time" id="pTimes" dir="ltr">0:00 / 0:00</div>
+    <div class="p-scrub">
+      <button class="rate" id="pSpeed" dir="ltr">1x</button>
+      <div class="seekwrap">
+        <div class="trackbg"></div><div class="trackfg" id="pFill"></div>
+        <input type="range" id="pSeek" min="0" max="1000" value="0" />
+      </div>
+      <button class="full" id="pFull"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
+    </div>
+  </div>
+
   <div class="p-meta">
     <h2 id="pTitle">—</h2>
-    <p class="muted" id="pArtist">—</p>
+    <p class="p-desc" id="pDesc">—</p>
   </div>
-  <div class="p-stars" id="pStars"></div>
-  <div class="p-seek">
-    <input type="range" id="pSeek" min="0" max="1000" value="0" />
-    <div class="p-times"><span id="pCur">0:00</span><span id="pDur">0:00</span></div>
+
+  <div class="p-by">
+    <div class="av" id="pByArt">♪</div>
+    <div class="who"><small>الفنان</small><b id="pArtist">—</b></div>
+    <div class="p-stars" id="pStars"></div>
   </div>
+
   <div class="p-controls">
-    <button class="icon" id="pShuffle"><svg viewBox="0 0 24 24" width="19" height="19"><path d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7M16 21h5v-5M21 21l-7-7M3 3h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
-    <button class="icon big" id="pPrev">⏮</button>
+    <button class="round" id="pShuffle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 4h4v4"/><path d="M3 20 21 4"/><path d="M17 20h4v-4"/><path d="m3 4 6 6"/><path d="m15 16 6 4"/></svg></button>
+    <button class="round" id="pPrev">⏮</button>
     <button class="play" id="pPlay">▶</button>
-    <button class="icon big" id="pNext">⏭</button>
-    <button class="icon" id="pRepeat"><svg viewBox="0 0 24 24" width="19" height="19"><path d="M17 2l4 4-4 4M3 11V9a4 4 0 014-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 01-4 4H3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><b class="rep-1" hidden>1</b></button>
+    <button class="round" id="pNext">⏭</button>
+    <button class="round" id="pRepeat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><b class="rep-1" hidden>1</b></button>
   </div>
+
   <div class="p-extra">
-    <button class="icon" id="pFav" title="مفضلة">♡</button>
-    <button class="icon" id="pOffline" title="حفظ للاستماع دون إنترنت">⤓</button>
-    <button class="icon" id="pSleep" title="مؤقت النوم">☾</button>
-    <button class="icon" id="pSpeed" title="السرعة">1×</button>
+    <button class="round" id="pOffline" title="حفظ دون إنترنت"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></button>
+    <button class="round" id="pQueue" title="قائمة الانتظار"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11M4 12h11M4 17h7"/><path d="m16 14 5 3-5 3z" fill="currentColor" stroke="none"/></svg></button>
+    <button class="round" id="pEq" title="المعادل الصوتي"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V10M6 7V4M12 20v-7M12 10V4M18 20v-4M18 13V4"/><circle cx="6" cy="8.5" r="1.6"/><circle cx="12" cy="11.5" r="1.6"/><circle cx="18" cy="14.5" r="1.6"/></svg></button>
+    <button class="round" id="pLyricsBtn" title="الكلمات"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H7l-4 3V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"/><path d="M8 11h8M8 15h5"/></svg></button>
+    <button class="round" id="pSleep" title="مؤقت النوم"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 13.5A8.5 8.5 0 0 1 10.5 3 8.5 8.5 0 1 0 21 13.5z"/></svg></button>
   </div>
+
+  <div id="pLyricsWrap" hidden>
+    <div class="p-sec"><h4>الكلمات</h4><span id="pLyricsNote"></span></div>
+    <div class="lyrics" id="pLyrics"></div>
+  </div>
+
+  <div class="p-sec"><h4 id="pListTitle">من الألبوم</h4><span id="pListCount"></span></div>
+  <div class="list" id="pList"></div>
 </section>
 
-<!-- التنقّل السفلي -->
+<!-- ————— الوضع الغامر -->
+<section class="immersive" id="immersive" hidden>
+  <div class="sh"></div>
+  <div class="p-corner" style="top:calc(var(--safe-t) + 14px)">
+    <button class="round" id="imClose">▾</button>
+    <button class="round" id="imPlay">▶</button>
+  </div>
+  <div class="im-art" id="imArt"><span>♪</span></div>
+  <h1 id="imTitle">—</h1>
+  <p class="ar" id="imArtist">—</p>
+  <div class="lyrics" id="imLyrics"></div>
+</section>
+
+<!-- ————— التنقّل السفلي -->
 <nav class="tabs" id="tabs" hidden>
-  <button data-tab="library" class="on"><span>♪</span>المكتبة</button>
-  <button data-tab="albums"><span>▦</span>الألبومات</button>
-  <button data-tab="fav"><span>♥</span>المفضلة</button>
-  <button data-tab="settings"><span>⚙</span>الإعدادات</button>
+  <button data-tab="home" class="on" aria-label="الرئيسية"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></button>
+  <button data-tab="albums" aria-label="الألبومات"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg></button>
+  <button data-tab="fav" aria-label="المفضلة"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 4.6-7 9-7 9z"/></svg></button>
+  <button data-tab="settings" aria-label="الإعدادات"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  <button data-tab="search" aria-label="بحث"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
 </nav>
 
-<!-- طبقات -->
+<!-- ————— طبقات -->
 <div class="sheet-root" id="sheetRoot" hidden></div>
 <div class="toasts" id="toasts"></div>
 <div class="loading" id="loading" hidden><div class="spin"></div><span id="loadingText">…</span></div>

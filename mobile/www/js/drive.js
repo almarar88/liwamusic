@@ -178,6 +178,36 @@ export class DriveClient {
     };
   }
 
+  /**
+   * يبحث عن ملف كلمات مجاور للأغنية (نفس الاسم بامتداد ‎.lrc‎ أو ‎.txt‎).
+   * يعيد نصّ الملف أو null.
+   */
+  async findLyrics(fileName) {
+    const base = String(fileName || '').replace(/\.[a-z0-9]{1,5}$/i, '');
+    if (!base) return null;
+    const esc = base.replace(/'/g, "\\'");
+    for (const ext of ['lrc', 'txt']) {
+      try {
+        const d = await this.api('/files', {
+          params: {
+            q: `name = '${esc}.${ext}' and trashed = false`,
+            fields: 'files(id,name,size)',
+            pageSize: 3,
+          },
+        });
+        const hit = (d.files || [])[0];
+        if (!hit) continue;
+        const res = await this.api(`/files/${encodeURIComponent(hit.id)}`, {
+          params: { alt: 'media' }, raw: true,
+        });
+        if (!res.ok) continue;
+        const text = await res.text();
+        if (text && text.trim()) return text;
+      } catch { /* نجرّب الامتداد التالي */ }
+    }
+    return null;
+  }
+
   /** يمشي على شجرة المجلد ويجمع كل ملفات الصوت. */
   async walkAudio(folderId, onProgress = () => {}, depth = 0, seen = new Set()) {
     if (depth > 12 || seen.has(folderId)) return [];

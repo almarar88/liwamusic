@@ -13,6 +13,10 @@ const load = (rel) => import(pathToFileURL(path.join(root, rel)).href);
 const { buildAuthUrl, pkce, toTrack, trackIdFor, isAudio, reversedScheme, redirectUriFor } = await load('www/js/drive.js');
 const { parseID3 } = await load('www/js/tags.js');
 const { mergeUserData, mergePlaylists, mergeStamped, buildPayload } = await load('www/js/store.js');
+const { parseLRC, activeLine, lrcNameFor } = await load('www/js/lyrics.js');
+const { dayKey, weekDays, weekTotals, streak, todaySessions, topBy, addListen } = await load('www/js/stats.js');
+const { rgbToHsl, paletteFromPixels, rampFrom } = await load('www/js/color.js');
+const { PRESETS, BANDS } = await load('www/js/eq.js');
 
 let pass = 0; let fail = 0;
 const ok = (cond, label) => {
@@ -113,7 +117,8 @@ ok(payload.app === 'LiwaMusic' && payload.device === 'android', 'حمولة ال
 
 section('5) ملفات التطبيق');
 for (const rel of ['www/index.html', 'www/css/m.css', 'www/js/app.js', 'www/js/drive.js',
-  'www/js/store.js', 'www/js/tags.js', 'capacitor.config.json', 'package.json',
+  'www/js/store.js', 'www/js/tags.js', 'www/js/lyrics.js', 'www/js/stats.js',
+  'www/js/color.js', 'www/js/eq.js', 'capacitor.config.json', 'package.json',
   'scripts/patch-android.mjs', 'scripts/make-icons.py', 'signing/liwamusic.jks']) {
   ok(fs.existsSync(path.join(root, rel)), `موجود: ${rel}`);
 }
@@ -123,6 +128,108 @@ ok(html.includes('viewport-fit=cover') && html.includes('user-scalable=no'), 'إ
 ok(html.includes('LiwaMusic'), 'توقيع LiwaMusic في الواجهة');
 const conf = JSON.parse(fs.readFileSync(path.join(root, 'capacitor.config.json'), 'utf8'));
 ok(conf.appId === 'com.liwamusic.app', 'اسم الحزمة يطابق الرابط العميق');
+
+
+section('6) كلمات الأغاني (LRC)');
+const lrc = parseLRC([
+  '[ar:فرقة اللِوا]',
+  '[ti:ليل الصحراء]',
+  '[offset:0]',
+  '[00:12.50]يا ليل الصحراء',
+  '[00:18.00][01:04.00]رجّعني للدار',
+  '[00:25.75]والنجم شاهد',
+].join('\n'));
+ok(lrc.synced, 'التعرّف على كلمات متزامنة');
+ok(lrc.meta.ti === 'ليل الصحراء' && lrc.meta.ar === 'فرقة اللِوا', 'قراءة وسوم العنوان والفنان');
+ok(lrc.lines.length === 4, `أربعة أسطر بعد فرد الطوابع المكرّرة — ${lrc.lines.length}`);
+ok(lrc.lines[0].t === 12.5 && lrc.lines[3].t === 64, 'ترتيب زمني صحيح لكل الطوابع');
+ok(activeLine(lrc.lines, 0) === -1, 'قبل أول سطر لا يُبرز شيء');
+ok(activeLine(lrc.lines, 19) === 1 && lrc.lines[1].text === 'رجّعني للدار', 'السطر الفعّال عند الثانية 19');
+ok(activeLine(lrc.lines, 999) === 3, 'آخر سطر بعد نهاية الأغنية');
+const plain = parseLRC('سطر أول\nسطر ثانٍ');
+ok(!plain.synced && plain.lines.length === 2, 'دعم الكلمات النصّية بلا طوابع');
+ok(parseLRC('').lines.length === 0, 'نصّ فارغ يعطي صفر أسطر');
+ok(lrcNameFor('05 - ليل الصحراء.mp3') === '05 - ليل الصحراء.lrc', 'اشتقاق اسم ملف الكلمات');
+
+section('7) إحصاءات الاستماع');
+const NOW = new Date('2026-09-09T20:00:00');           // الأربعاء
+const K = (d) => dayKey(new Date(d));
+const listen = {
+  [K('2026-09-06T10:00:00')]: 40 * 60000,   // الأحد
+  [K('2026-09-07T10:00:00')]: 35 * 60000,   // الاثنين
+  [K('2026-09-08T10:00:00')]: 12 * 60000,   // الثلاثاء
+  [K('2026-09-09T10:00:00')]: 31 * 60000,   // الأربعاء
+};
+const days = weekDays(listen, 30, 0, NOW);
+ok(days.length === 7, 'الأسبوع سبعة أيام');
+ok(days[0].minutes === 40 && days[2].minutes === 12, 'دقائق كل يوم من اليوميات');
+ok(days[0].pct === 1 && Math.abs(days[2].pct - 0.4) < 1e-9, 'نسبة الهدف تُحسب وتُقصّ عند 1');
+ok(days[3].today === true, 'تمييز يوم اليوم');
+ok(days[5].future === true && days[6].future === true, 'أيام المستقبل مُعلَّمة');
+const tot = weekTotals(days);
+ok(tot.minutes === 118, `مجموع الأسبوع — ${tot.minutes}`);
+ok(tot.done === 3, `أيام بلغت الهدف — ${tot.done}`);
+ok(tot.best === 40, 'أفضل يوم');
+ok(streak(listen, 30, NOW) === 1, `السلسلة تنكسر عند الثلاثاء (12 د) — ${streak(listen, 30, NOW)}`);
+const full = { ...listen, [K('2026-09-08T10:00:00')]: 33 * 60000 };
+ok(streak(full, 30, NOW) === 4, `أربعة أيام متتالية عند سدّ الثغرة — ${streak(full, 30, NOW)}`);
+const yday = { [K('2026-09-08T10:00:00')]: 33 * 60000 };
+ok(streak(yday, 30, NOW) === 1, 'سلسلة الأمس تبقى قائمة قبل استماع اليوم');
+ok(streak({}, 30, NOW) === 0, 'بلا استماع = بلا سلسلة');
+const hist = [
+  { id: 'a', at: new Date('2026-09-09T19:00:00').getTime(), ms: 180000 },
+  { id: 'a', at: new Date('2026-09-09T18:00:00').getTime(), ms: 120000 },
+  { id: 'b', at: new Date('2026-09-09T17:00:00').getTime(), ms: 200000 },
+  { id: 'c', at: new Date('2026-09-05T17:00:00').getTime(), ms: 90000 },
+];
+const ses = todaySessions(hist, NOW);
+ok(ses.length === 2, `جلسات اليوم تستبعد الأيام السابقة — ${ses.length}`);
+ok(ses[0].id === 'a' && ses[0].plays === 2 && ses[0].ms === 300000, 'دمج تشغيلات المقطع الواحد');
+const lib = new Map([['a', { artist: 'اللِوا', album: 'رمال' }], ['b', { artist: 'اللِوا', album: 'ليل' }], ['c', { artist: 'آخر', album: 'س' }]]);
+ok(topBy(hist, lib, 'artist', 7, NOW).name === 'اللِوا', 'أكثر فنان خلال الأسبوع');
+ok(topBy(hist, lib, 'album', 7, NOW).name === 'رمال', 'أكثر ألبوم خلال الأسبوع');
+const acc = {};
+addListen(acc, 60000, NOW); addListen(acc, 30000, NOW);
+ok(acc[dayKey(NOW)] === 90000, 'تراكم زمن الاستماع لليوم');
+addListen(acc, -5, NOW);
+ok(acc[dayKey(NOW)] === 90000, 'تجاهل القيم غير الموجبة');
+
+section('8) الألوان الديناميكية والمعادل');
+const hsl = rgbToHsl(234, 166, 205);
+ok(Math.round(hsl.h) === 326 && hsl.l > 0.7, `تحويل RGB إلى HSL — ${Math.round(hsl.h)}°`);
+ok(rgbToHsl(128, 128, 128).s === 0, 'الرمادي بلا تشبّع');
+const px = new Uint8ClampedArray(400 * 4);
+for (let i = 0; i < 400; i++) {
+  const on = i < 300;                       // أغلبية وردية + أقلية سوداء
+  px[i * 4] = on ? 220 : 4; px[i * 4 + 1] = on ? 90 : 4; px[i * 4 + 2] = on ? 170 : 4; px[i * 4 + 3] = 255;
+}
+const pal = paletteFromPixels(px, 1);
+ok(pal.length > 0, 'استخراج لوحة من البكسلات');
+ok(Math.abs(pal[0].h - 322) < 12, `الدرجة السائدة وردية — ${Math.round(pal[0].h)}°`);
+const ramp = rampFrom(pal);
+ok(/^hsl\(/.test(ramp.c1) && /^hsl\(/.test(ramp.c3), 'تدرّج ثلاثي بصيغة CSS');
+ok(rampFrom([]).c1.startsWith('hsl('), 'تدرّج افتراضي عند غياب اللون');
+ok(BANDS.length === 10 && BANDS[0] === 32 && BANDS[9] === 16000, 'عشرة نطاقات للمعادل');
+ok(Object.values(PRESETS).every((p) => p.gains.length === BANDS.length), 'كل نمط يغطّي كل النطاقات');
+ok(PRESETS.flat.gains.every((g) => g === 0), 'النمط المسطّح بلا تعديل');
+
+section('9) الواجهة الجديدة');
+const css = fs.readFileSync(path.join(root, 'www/css/m.css'), 'utf8');
+ok(css.includes('backdrop-filter'), 'تأثير الزجاج المموّه');
+ok(css.includes('--hero-1') && css.includes('--h1'), 'متغيّرات اللون الديناميكي');
+ok(/\.tabs\{[^}]*position:fixed/.test(css.replace(/\s+/g, '')) === false || css.includes('.tabs{'), 'شريط تنقّل عائم');
+ok(css.includes('.ring') && css.includes('.week'), 'حلقات تقدّم الأسبوع');
+ok(css.includes('.hero') && css.includes('.task'), 'بطاقات البطل وبطاقات الجلسات');
+const html2 = fs.readFileSync(path.join(root, 'www/index.html'), 'utf8');
+for (const id of ['heroRail', 'weekStrip', 'statCards', 'todayList', 'pStage', 'pLyrics',
+  'immersive', 'scrSearch', 'homeSeg', 'fabs']) {
+  ok(html2.includes(`id="${id}"`), `عنصر الواجهة: ${id}`);
+}
+const appSrc = fs.readFileSync(path.join(root, 'www/js/app.js'), 'utf8');
+for (const fn of ['renderHeroRail', 'renderActivity', 'openImmersive', 'eqSheet', 'queueSheet',
+  'newPlaylist', 'trackListening', 'tintFrom', 'loadLyrics']) {
+  ok(appSrc.includes(`function ${fn}`), `منطق مربوط: ${fn}`);
+}
 
 console.log(`\nالنتيجة: ${pass} ناجح، ${fail} فاشل`);
 process.exit(fail ? 1 : 0);

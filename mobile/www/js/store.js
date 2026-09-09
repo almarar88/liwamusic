@@ -188,4 +188,6 @@ export const DEFAULT_USERDATA = {
   version: 1,
   favorites: {}, favAt: {}, ratings: {}, ratedAt: {},
   playCount: {}, lastPlayed: {}, ai: {}, overrides: {}, artOverrides: {}, history: [],
+  // إحصاءات الاستماع: مللي ثانية لكل يوم بصيغة YYYY-MM-DD
+  listen: {},
 };
