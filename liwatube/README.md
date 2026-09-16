@@ -84,6 +84,10 @@ docker compose up -d      # عدّل LIWATUBE_ADMIN_PASSWORD في docker-compose
 
 ## 📱📺 التطبيق: هاتف + تلفاز في APK واحد
 
+### **[⬇ تحميل LiwaTube.apk (هاتف + تلفاز أندرويد)](https://github.com/almarar88/liwamusic/releases/download/tube-android-v1.0.0/LiwaTube.apk)**
+
+`LiwaTube.apk` · ~3 ميجابايت · أندرويد 6+ · [كل الإصدارات](https://github.com/almarar88/liwamusic/releases)
+
 `liwatube/app/` هو تطبيق Capacitor يغلّف نفس الواجهة. عند أول تشغيل يطلب **عنوان خادمك**، ثم يعمل مثل يوتيوب:
 
 - **الهاتف**: شريط تنقّل سفلي، بطاقات بعرض الشاشة، مشغّل يملأ العرض، Shorts بالتمرير.
