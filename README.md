@@ -12,6 +12,13 @@
 
 ---
 
+## 📺 جديد: LiwaTube — يوتيوبك الخاص
+
+في مجلد [`liwatube/`](liwatube/README.md) تطبيق شقيق يحوّل مجلدات الفيديو إلى **يوتيوب خاص بك**:
+رئيسية وShorts وقنوات واشتراكات وسجل و«شاهد لاحقًا» ومشغّل بأسلوب يوتيوب، مع ذكاء اصطناعي اختياري
+يشاهد الفيديو ويكتب العنوان والوصف والفصول ويجيب عن أسئلتك أثناء المشاهدة. كل شيء محلي، وبقفل PIN اختياري.
+البناء: `.github/workflows/build-liwatube.yml` (وسوم `tube-v*`).
+
 ## ⬇️ التحميل
 
 [![آخر إصدار](https://img.shields.io/github/v/release/almarar88/liwamusic?label=%D8%A2%D8%AE%D8%B1%20%D8%A5%D8%B5%D8%AF%D8%A7%D8%B1&color=7c5cff)](https://github.com/almarar88/liwamusic/releases/latest)
