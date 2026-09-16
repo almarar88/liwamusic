@@ -1,0 +1,12 @@
+services:
+  liwatube:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    ports:
+      - "8787:8787"
+    volumes:
+      - ./data:/data
+    environment:
+      - LIWATUBE_ADMIN_PASSWORD=change-me
+    restart: unless-stopped

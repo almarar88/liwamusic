@@ -21,9 +21,10 @@
       tags: ov.tags || (ai && ai.tags) || [],
       channel: ov.channel || v.channel,
       ai,
-      url: `liwa://video/${b64(v.path)}`,
-      thumbUrl: v.thumb ? `liwa://thumb/${v.thumb}` : null,
-      plays: u.playCount[id] || 0,
+      url: LT.urls.video(v),
+      thumbUrl: v.thumb ? LT.urls.thumb(v) : null,
+      plays: v.views != null ? v.views : (u.playCount[id] || 0),
+      canEdit: LT.mode !== 'web' || Boolean(S().auth && S().auth.admin),
       ratio,
       resumeAt: ratio > 0.03 && ratio < 0.95 ? prog.pos : 0,
       watched: ratio >= 0.95,
@@ -32,7 +33,6 @@
       isShort: (v.duration > 0 && v.duration <= (S().settings.shortsMax || 60)) || (v.height > v.width && v.duration <= 180 && v.duration > 0),
     };
   }
-  const b64 = (s) => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   const allInfo = () => Object.keys(S().lib.videos).map(info).filter(Boolean);
   const channelName = (cid) => (S().lib.channels.find((c) => c.id === cid) || {}).name || '';
 
@@ -62,7 +62,7 @@
       ),
       more,
     );
-    const el = h('div.card', { class: mode === 'list' ? 'list' : mode === 'mini' ? 'mini-card' : '', dataset: { id: v.id }, onclick: () => A().play(v.id), oncontextmenu: (e) => { e.preventDefault(); A().ctxFor(v.id, e.clientX, e.clientY, { onRemove }); } },
+    const el = h('div.card', { class: mode === 'list' ? 'list' : mode === 'mini' ? 'mini-card' : '', dataset: { id: v.id }, tabindex: 0, onkeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); A().play(v.id); } }, onclick: () => A().play(v.id), oncontextmenu: (e) => { e.preventDefault(); A().ctxFor(v.id, e.clientX, e.clientY, { onRemove }); } },
       index != null ? h('div.idx', String(index)) : null, thumb, meta);
     // معاينة عند التمرير
     if (S().settings.hoverPreview && v.native) {
@@ -80,7 +80,13 @@
     return el;
   }
 
-  const empty = (title, hint, withAdd = true) => h('div.empty', h('h2', title), h('p', hint), withAdd ? h('button.btn.primary', { onclick: () => A().addFolder() }, LT.icon('folder'), t('addFolder')) : null);
+  const empty = (title, hint, withAdd = true) => {
+    if (LT.mode === 'web') {
+      const admin = Boolean(S().auth && S().auth.admin);
+      return h('div.empty', h('h2', t('emptyWeb')), h('p', t('emptyWebHint')), admin ? h('button.btn.primary', { onclick: () => A().addFolder() }, LT.icon('folder'), t('upload')) : h('button.btn', { onclick: () => LT.studio.login() }, t('adminLogin')));
+    }
+    return h('div.empty', h('h2', title), h('p', hint), withAdd ? h('button.btn.primary', { onclick: () => A().addFolder() }, LT.icon('folder'), t('addFolder')) : null);
+  };
   const grid = (list, opts) => h('div.grid', list.map((v) => card(v, opts)));
 
   // ---------- الرئيسية
@@ -350,7 +356,7 @@
       h('div.btn-group', likeBtn, dislikeBtn),
       laterBtn,
       h('button.btn', { onclick: () => A().addToPlaylist([v.id]) }, LT.icon('save'), t('save')),
-      h('button.btn', { onclick: () => window.liwa.app.reveal(v.id) }, LT.icon('folder'), t('share')),
+      h('button.btn', { onclick: () => window.liwa.app.reveal(v.id) }, LT.icon('folder'), LT.mode === 'web' ? t('copyLink') : t('share')),
       h('button.btn', { onclick: (e) => A().ctxFor(v.id, e.clientX, e.clientY) }, LT.icon('more')),
     );
     const chRow = h('div.w-row', h('div.w-ch', { style: { cursor: 'pointer' }, onclick: () => LT.router.go(`#/channel/${v.channelId}`) }, avatar(v.channel), h('div', h('div.name', v.channel), h('div.muted.xs', `${chanCount} ${t('videos')}`))), subBtn, actions);
@@ -360,11 +366,11 @@
       h('div.d-head', [fmtViews(v.plays), timeAgo(v.addedAt || v.mtimeMs), fmtTime(v.duration), LT.fmtBytes(v.size), v.width ? `${v.width}×${v.height}` : null, v.ext.toUpperCase()].filter(Boolean).flatMap((x, i) => [i ? ' • ' : null, h('bdi', x)])),
       h('div.d-body', descText),
       v.tags.length ? h('div.tags', v.tags.map((tg) => h('span.tag', { onclick: () => LT.router.go(`#/search?q=${encodeURIComponent(tg)}`) }, `#${tg}`))) : null,
-      h('div.row', { style: { marginTop: '10px' } },
+      v.canEdit ? h('div.row', { style: { marginTop: '10px' } },
         h('button.btn.sm', { onclick: () => A().analyze(v.id) }, LT.icon('ai', 18), v.ai ? t('reanalyze') : t('analyze')),
         h('button.btn.sm', { onclick: () => A().editMeta(v.id) }, LT.icon('edit', 18), t('edit')),
         h('span.muted.xs', v.ai ? `${t('analyzed')} • ${v.ai.category || ''} • ${Math.round((v.ai.confidence || 0) * 100)}%` : ''),
-      ),
+      ) : null,
       !v.native ? h('div.warn-native', t('unplayable')) : null,
     );
     main.append(title, chRow, descBox);
@@ -376,9 +382,10 @@
         chapters.map((c) => h('div.ch', { dataset: { t: c.t }, onclick: () => LT.player.seek(c.t) }, h('span.t', fmtTime(c.t)), h('span', c.label))));
       main.append(chapterBox);
     }
-    // لوحة الذكاء الاصطناعي: اسأل عن الفيديو
-    main.append(askPanel(v));
-    // الملاحظات
+    // لوحة الذكاء الاصطناعي: اسأل عن الفيديو (في الويب تظهر فقط إن كان الذكاء متاحًا للمستخدم)
+    if (LT.mode !== 'web' || st.ai.enabled) main.append(askPanel(v));
+    // الملاحظات / التعليقات
+    if (window.liwa.user.comments) { try { st.user.comments[id] = await window.liwa.user.comments(id); } catch { /* غير متاح */ } }
     main.append(commentsPanel(v));
     // الجانب: التالي
     const side = h('div.w-side');
@@ -455,8 +462,10 @@
     const render = () => {
       list.innerHTML = '';
       for (const c of (st.user.comments[v.id] || [])) {
-        list.append(h('div.comment', avatar(LT.lang === 'ar' ? 'أنا' : 'Me', ''), h('div.grow', h('div.sm', h('b', LT.lang === 'ar' ? 'أنا' : 'Me'), h('span.muted.xs', ` • ${timeAgo(c.at)}`)), h('div.body', c.text)),
-          h('button.icon-btn.del', { onclick: async () => { st.user.comments[v.id] = await window.liwa.user.deleteComment(v.id, c.id); render(); } }, LT.icon('trash', 18))));
+        const who = c.name || (LT.lang === 'ar' ? 'أنا' : 'Me');
+        const canDel = LT.mode !== 'web' || c.mine || (st.auth && st.auth.admin);
+        list.append(h('div.comment', avatar(who, ''), h('div.grow', h('div.sm', h('b', who), h('span.muted.xs', ` • ${timeAgo(c.at)}`)), h('div.body', c.text)),
+          canDel ? h('button.icon-btn.del', { onclick: async () => { st.user.comments[v.id] = await window.liwa.user.deleteComment(v.id, c.id); render(); } }, LT.icon('trash', 18)) : null));
       }
     };
     render();
@@ -464,7 +473,9 @@
     ta.addEventListener('keydown', async (e) => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const txt = ta.value.trim(); if (!txt) return; st.user.comments[v.id] = await window.liwa.user.comment(v.id, txt); ta.value = ''; render(); }
     });
-    return h('div.comments', h('div.section-h', { style: { fontSize: '16px' } }, t('comments'), h('span.muted', `${(st.user.comments[v.id] || []).length}`)), h('div.c-in', avatar(LT.lang === 'ar' ? 'أنا' : 'Me'), ta), list);
+    const me = LT.mode === 'web' ? (st.settings.nickname || (LT.lang === 'ar' ? 'مشاهد' : 'Viewer')) : (LT.lang === 'ar' ? 'أنا' : 'Me');
+    const allowed = LT.mode !== 'web' || st.site == null || st.site.allowComments !== false;
+    return h('div.comments', h('div.section-h', { style: { fontSize: '16px' } }, LT.mode === 'web' ? (LT.lang === 'ar' ? 'التعليقات' : 'Comments') : t('comments'), h('span.muted', `${(st.user.comments[v.id] || []).length}`)), allowed ? h('div.c-in', avatar(me), ta) : null, list);
   }
 
   // ---------- الذكاء الاصطناعي
@@ -485,7 +496,7 @@
         h('button.btn.primary', { onclick: async () => { report.innerHTML = ''; report.append(h('span.spin')); try { report.innerHTML = LT.md(await window.liwa.ai.insights()); } catch (err) { report.textContent = A().aiError(err); } } }, LT.icon('insights', 18), t('insights')),
         h('button.btn', { onclick: () => A().smartPlaylist() }, LT.icon('playlists', 18), t('smartPl')),
         h('button.btn', { onclick: () => { st.homeChip = 'forYou'; st.forYou = null; LT.router.go('#/home'); } }, '✨ ', t('forYou')),
-        batchBtn),
+        LT.mode === 'web' && !(st.auth && st.auth.admin) ? null : batchBtn),
       h('div.set-group', h('h3', LT.lang === 'ar' ? 'ماذا يفعل الذكاء الاصطناعي هنا؟' : 'What does AI do here?'),
         h('div.shortcuts', [
           ['🎬', LT.lang === 'ar' ? 'يشاهد إطارات من الفيديو ويكتب عنوانًا ووصفًا ووسومًا وفصولًا ويختار أفضل صورة مصغّرة.' : 'Watches frames from the video and writes a title, description, tags, chapters, and picks the best thumbnail.'],
@@ -502,6 +513,7 @@
 
   // ---------- الإعدادات
   function settings() {
+    if (LT.mode === 'web' && LT.studio) return LT.studio.settings();
     const st = S(); const s = st.settings;
     const set = async (patch) => { Object.assign(s, patch); await window.liwa.settings.set(patch); LT.applySettings(); };
     const row = (label, small, control) => h('div.set-row', h('div.lbl', label, small ? h('small', small) : null), control);

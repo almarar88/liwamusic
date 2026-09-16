@@ -220,6 +220,113 @@ section('الواجهة');
   ok(channels.length > 40 && missing.length === 0, `كل قنوات preload (${channels.length}) لها معالج في main`, missing.join(','));
 }
 
+// ————————————————————————————————— الخادم (HTTP API)
+section('الخادم (server)');
+{
+  const { LiwaTubeServer } = require(path.join(root, 'server/server.js'));
+  const dataDir = path.join(tmp, 'server-data');
+  const srv = new LiwaTubeServer({ dataDir, port: 0, host: '127.0.0.1', log: () => {} });
+  await srv.listen();
+  const base = `http://127.0.0.1:${srv.port}`;
+  let token = '';
+  const api = async (method, url, body, { raw = false, headers = {}, dev = 'dev-a' } = {}) => {
+    const h = { 'X-Device': dev, ...headers };
+    if (token) h.Authorization = `Bearer ${token}`;
+    let b = body;
+    if (body !== undefined && !raw) { b = JSON.stringify(body); h['Content-Type'] = 'application/json'; }
+    const r = await fetch(`${base}${url}`, { method, headers: h, body: b });
+    let data = null; try { data = await r.json(); } catch { /* */ }
+    return { status: r.status, data, res: r };
+  };
+  let r = await api('GET', '/api/site');
+  ok(r.status === 200 && r.data.ok && r.data.data.hasAdmin === false && r.data.data.videos === 0, 'معلومات الموقع قبل الإعداد');
+  ok((await api('GET', '/api/admin/stats')).status === 401, 'مسارات المشرف مرفوضة بلا دخول');
+  ok((await api('POST', '/api/setup', { password: '12' })).status === 400, 'كلمة مرور قصيرة مرفوضة');
+  r = await api('POST', '/api/setup', { password: 'secret1' });
+  ok(r.status === 200 && r.data.data.token, 'إعداد كلمة مرور المشرف يعيد رمزًا');
+  ok((await api('POST', '/api/setup', { password: 'x' })).status === 409, 'لا يمكن إعادة الإعداد');
+  ok((await api('POST', '/api/login', { password: 'wrong' })).status === 401, 'كلمة مرور خاطئة');
+  r = await api('POST', '/api/login', { password: 'secret1' });
+  ok(r.status === 200 && r.data.data.token, 'تسجيل الدخول');
+  token = r.data.data.token;
+  ok((await api('GET', '/api/me')).data.data.admin === true, 'الرمز يمنح صلاحية المشرف');
+  // رفع
+  const bytes = Buffer.alloc(150000, 7);
+  r = await api('POST', `/api/admin/upload?name=${encodeURIComponent('My.Great.Video.1080p.mp4')}&channel=${encodeURIComponent('قناتي')}`, bytes, { raw: true, headers: { 'Content-Type': 'application/octet-stream' } });
+  ok(r.status === 200 && r.data.data.title === 'My Great Video' && r.data.data.channel === 'قناتي' && r.data.data.size === 150000, 'رفع مقطع وتسمية تلقائية', JSON.stringify(r.data));
+  const vid = r.data.data.id;
+  ok((await api('POST', '/api/admin/upload?name=x.exe', bytes, { raw: true })).status === 415, 'رفض الصيغ غير المدعومة');
+  ok((await api('POST', '/api/admin/upload?name=y.mp4', Buffer.alloc(0), { raw: true })).status === 400, 'رفض الملف الفارغ');
+  // البث مع Range
+  let s = await fetch(`${base}/api/video/${vid}`, { headers: { Range: 'bytes=100-199' } });
+  ok(s.status === 206 && s.headers.get('content-range') === 'bytes 100-199/150000' && (await s.arrayBuffer()).byteLength === 100, 'بث الفيديو بـ Range');
+  s = await fetch(`${base}/api/video/${vid}`, { method: 'HEAD' });
+  ok(s.status === 200 && s.headers.get('content-length') === '150000' && s.headers.get('accept-ranges') === 'bytes', 'HEAD يعيد الحجم');
+  // صورة مصغّرة وترجمة وتعديل
+  r = await api('POST', `/api/admin/thumb/${vid}?at=3.5`, PNG_1PX_JPEG(), { raw: true, headers: { 'Content-Type': 'image/jpeg' } });
+  ok(r.status === 200 && String(r.data.data).startsWith(`${vid}.jpg?v=`), 'رفع الصورة المصغّرة');
+  s = await fetch(`${base}/api/thumb/${vid}.jpg`);
+  ok(s.status === 200 && s.headers.get('content-type') === 'image/jpeg', 'تقديم الصورة المصغّرة');
+  r = await api('POST', `/api/admin/sub/${vid}?lang=ar`, '1\n00:00:01,000 --> 00:00:02,000\nمرحبا\n', { raw: true, headers: { 'Content-Type': 'text/plain' } });
+  ok(r.status === 200 && r.data.data.subs.length === 1 && r.data.data.subs[0].lang === 'ar', 'رفع ترجمة SRT');
+  s = await fetch(`${base}/api/sub/${vid}/0`);
+  ok(s.status === 200 && (await s.text()).startsWith('WEBVTT'), 'الترجمة تُقدَّم كـ VTT');
+  r = await api('PATCH', `/api/admin/video/${vid}`, { title: 'عنوان جديد', tags: ['a', 'b'], duration: 42.5, probed: true, hidden: true });
+  ok(r.status === 200 && r.data.data.title === 'عنوان جديد' && r.data.data.duration === 42.5 && r.data.data.hidden === true, 'تعديل البيانات');
+  const saved = token; token = '';
+  r = await api('GET', '/api/library');
+  ok(Object.keys(r.data.data.videos).length === 0, 'المخفي لا يظهر للزوار');
+  ok((await fetch(`${base}/api/video/${vid}`)).status === 404, 'بث المخفي مرفوض للزوار');
+  token = saved;
+  ok(Object.keys((await api('GET', '/api/library?all=1')).data.data.videos).length === 1, 'المشرف يرى المخفي');
+  await api('PATCH', `/api/admin/video/${vid}`, { hidden: false });
+  token = '';
+  r = await api('GET', '/api/library');
+  const pub = r.data.data.videos[vid];
+  ok(pub && pub.path === undefined && pub.thumb && pub.folder === 'قناتي' && r.data.data.channels[0].name === 'قناتي', 'المكتبة العامة بلا مسارات ومع القنوات');
+  // مشاهدات وإعجابات وتعليقات
+  await api('POST', `/api/view/${vid}`); await api('POST', `/api/view/${vid}`);
+  await api('POST', `/api/view/${vid}`, undefined, { dev: 'dev-b' });
+  r = await api('GET', '/api/library');
+  ok(r.data.data.videos[vid].views === 2, 'المشاهدات تُعدّ مرة لكل جهاز خلال 30 دقيقة', String(r.data.data.videos[vid].views));
+  r = await api('POST', `/api/like/${vid}`, { val: 1 });
+  await api('POST', `/api/like/${vid}`, { val: -1 }, { dev: 'dev-b' });
+  r = await api('POST', `/api/like/${vid}`, { val: 1 });
+  ok(r.data.data.likes === 1 && r.data.data.dislikes === 1 && r.data.data.mine === 1, 'الإعجابات لكل جهاز');
+  r = await api('POST', `/api/comments/${vid}`, { name: 'زائر', text: 'رائع' });
+  ok(r.status === 200 && r.data.data.length === 1 && r.data.data[0].mine === true, 'إضافة تعليق');
+  const cid = r.data.data[0].id;
+  ok((await api('DELETE', `/api/comments/${vid}/${cid}`, undefined, { dev: 'dev-b' })).status === 403, 'لا يحذف تعليق غيره');
+  ok((await api('DELETE', `/api/comments/${vid}/${cid}`)).data.data.length === 0, 'يحذف تعليقه');
+  ok((await api('POST', `/api/ai/search`, { query: 'x' })).status === 403, 'الذكاء مغلق افتراضيًا');
+  // الإعدادات
+  token = saved;
+  r = await api('POST', '/api/admin/settings', { siteName: 'قناة ليوا', allowComments: false, aiEnabled: true });
+  ok(r.status === 200 && r.data.data.siteName === 'قناة ليوا' && r.data.data.aiKeySet === false, 'حفظ إعدادات الموقع');
+  token = '';
+  ok((await api('POST', `/api/comments/${vid}`, { name: 'x', text: 'y' })).status === 403, 'تعطيل التعليقات للزوار');
+  ok((await api('GET', '/api/site')).data.data.name === 'قناة ليوا' && (await api('GET', '/api/site')).data.data.aiEnabled === false, 'الذكاء لا يُعلن مفعّلًا بلا مفتاح');
+  token = saved;
+  ok((await api('POST', '/api/admin/settings', { currentPassword: 'nope', newPassword: 'abcd' })).status === 401, 'تغيير كلمة المرور يتطلب الحالية');
+  r = await api('POST', '/api/admin/settings', { currentPassword: 'secret1', newPassword: 'abcd1234' });
+  ok(r.status === 200 && (await api('GET', '/api/me')).data.data.admin === false, 'تغيير كلمة المرور يبطل الرموز القديمة');
+  token = (await api('POST', '/api/login', { password: 'abcd1234' })).data.data.token;
+  // الملفات الثابتة
+  s = await fetch(`${base}/`);
+  const html = await s.text();
+  ok(s.status === 200 && html.includes('js/bridge.js') && html.includes('id="connect"'), 'الواجهة تُقدَّم من الجذر');
+  ok((await fetch(`${base}/js/recommend.js`)).status === 200 && (await fetch(`${base}/js/views.js`)).status === 200 && (await fetch(`${base}/css/web.css`)).status === 200, 'ملفات JS/CSS');
+  ok((await fetch(`${base}/js/../server/server.js`)).status === 404 && (await fetch(`${base}/api/../package.json`)).status === 404, 'لا تسريب لملفات خارج الواجهة');
+  ok((await fetch(`${base}/watch/abc`)).status === 200, 'المسارات غير المعروفة تعيد الواجهة (SPA)');
+  // حذف
+  r = await api('DELETE', `/api/admin/video/${vid}`);
+  ok(r.status === 200 && !fs.existsSync(path.join(dataDir, 'videos', `${vid}.mp4`)) && !fs.existsSync(path.join(dataDir, 'thumbs', `${vid}.jpg`)), 'الحذف يزيل الملفات');
+  await srv.close();
+  const srv2 = new LiwaTubeServer({ dataDir, port: 0, host: '127.0.0.1', log: () => {} });
+  ok(srv2.db.data.admin && srv2.db.data.settings.siteName === 'قناة ليوا' && Object.keys(srv2.db.data.videos).length === 0, 'قاعدة البيانات تُحفظ على القرص');
+}
+function PNG_1PX_JPEG() { return Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(200, 1), Buffer.from([0xff, 0xd9])]); }
+
 await fsp.rm(tmp, { recursive: true, force: true });
 console.log(`\n${pass} نجح، ${fail} فشل`);
 process.exit(fail ? 1 : 0);

@@ -14,7 +14,9 @@
     "start": "electron .",
     "test": "node scripts/selftest.mjs",
     "dist:win": "electron-builder --win --x64 --publish never",
-    "dist:dir": "electron-builder --win --x64 --dir --publish never"
+    "dist:dir": "electron-builder --win --x64 --dir --publish never",
+    "server": "node server/server.js",
+    "app:www": "node app/scripts/build-www.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.0"

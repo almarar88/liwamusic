@@ -52,6 +52,7 @@
         case 'watch': el = await V().watch(r.params[0]); hideMini(); break;
         case 'ai': el = V().ai(); break;
         case 'settings': el = V().settings(); break;
+        case 'studio': el = LT.studio ? await LT.studio.render(r.params, r.q) : await V().home(); break;
         default: el = await V().home();
       }
     } catch (err) { el = h('div.empty', h('h2', 'خطأ'), h('p', String(err.message || err))); console.error(err); }
@@ -82,7 +83,10 @@
       subs.length ? h('div.nav-head', t('subs')) : null,
       subs.slice(0, 12).map((c) => h('button.nav-item.nav-ch', { class: r.view === 'channel' && r.params[0] === c.id ? 'on' : '', onclick: () => router.go(`#/channel/${c.id}`) }, V().avatar(c.name), h('span.ellip', c.name))),
       item('#/channels', 'channels', t('channels'), S.lib.channels.length),
-      h('div.nav-sep'), item('#/ai', 'ai', t('ai')), item('#/settings', 'settings', t('settings')),
+      h('div.nav-sep'),
+      LT.mode === 'web' && S.auth && S.auth.admin ? item('#/studio', 'folder', t('studio')) : null,
+      LT.mode === 'web' && !(S.auth && S.auth.admin) ? h('button.nav-item', { onclick: () => LT.studio.login() }, LT.icon('channels'), h('span.ellip', t('adminLogin'))) : null,
+      LT.mode === 'web' && !S.ai.enabled ? null : item('#/ai', 'ai', t('ai')), item('#/settings', 'settings', t('settings')),
       h('div.nav-foot', `LiwaTube ${S.info?.version || ''}`, h('br'), S.info?.creator || ''),
     ].flat().filter(Boolean));
   }
@@ -143,7 +147,7 @@
   const actions = {
     play(id) { router.go(`#/watch/${id}`); },
     playQueue(ids) { if (!ids.length) return; S.queue = [...ids]; router.go(`#/watch/${ids[0]}`); },
-    async addFolder() { const lib = await window.liwa.library.addFolder(); setLib(lib); toast(t('folderAdded')); },
+    async addFolder() { if (LT.mode === 'web') { if (S.auth && S.auth.admin) router.go('#/studio/upload'); else LT.studio.login(); return; } const lib = await window.liwa.library.addFolder(); setLib(lib); toast(t('folderAdded')); },
     async removeFolder(f) { const lib = await window.liwa.library.removeFolder(f); setLib(lib); router.refresh(); },
     async rescan() { await window.liwa.library.scan(); },
     async regenThumbs() {
@@ -158,19 +162,22 @@
     ctxFor(id, x, y, { onRemove = null } = {}) {
       const v = V().info(id);
       if (!v) return;
+      const web = LT.mode === 'web';
+      const admin = web && S.auth && S.auth.admin;
       LT.ctxMenu(x, y, [
         { icon: 'play', label: t('play'), onClick: () => actions.play(id) },
         { icon: 'later', label: v.inLater ? t('later_rm') : t('later_add'), onClick: () => actions.watchLater(id, !v.inLater) },
         { icon: 'save', label: t('addToPl'), onClick: () => actions.addToPlaylist([id]) },
         { icon: 'check', label: v.watched ? t('unwatched') : t('markWatched'), onClick: async () => { await window.liwa.user.markWatched(id, !v.watched); S.user = await window.liwa.user.get(); router.refresh(); } },
         '-',
-        { icon: 'ai', label: v.ai ? t('reanalyze') : t('analyze'), onClick: () => actions.analyze(id) },
-        { icon: 'edit', label: t('edit'), onClick: () => actions.editMeta(id) },
-        '-',
+        v.canEdit ? { icon: 'ai', label: v.ai ? t('reanalyze') : t('analyze'), onClick: () => actions.analyze(id) } : null,
+        v.canEdit ? { icon: 'edit', label: t('edit'), onClick: () => actions.editMeta(id) } : null,
+        admin ? { icon: 'trash', label: t('delete'), onClick: () => LT.studio.remove(id) } : null,
+        v.canEdit ? '-' : null,
         onRemove ? { icon: 'close', label: onRemove.label, onClick: onRemove.fn } : null,
         { icon: 'hide', label: t('hide'), onClick: async () => { await window.liwa.user.hide(id, true); S.user.hidden[id] = true; router.refresh(); toast(t('removed'), { action: '↶', onAction: async () => { await window.liwa.user.hide(id, false); delete S.user.hidden[id]; router.refresh(); } }); } },
         { icon: 'hide', label: t('notInterested'), onClick: async () => { await window.liwa.user.notInterested(v.channelId, true); S.user.notInterested[v.channelId] = true; router.refresh(); } },
-        { icon: 'folder', label: t('reveal'), onClick: () => window.liwa.app.reveal(id) },
+        { icon: 'folder', label: web ? t('copyLink') : t('reveal'), onClick: () => window.liwa.app.reveal(id) },
       ]);
     },
     addToPlaylist(ids) {
@@ -335,7 +342,7 @@
       const cardEl = document.querySelector(`.card[data-id="${id}"] .thumb`);
       if (cardEl && rec && rec.thumb) {
         const ph = cardEl.querySelector('.ph');
-        if (ph) ph.replaceWith(h('img', { src: `liwa://thumb/${rec.thumb}` }));
+        if (ph) ph.replaceWith(h('img', { src: LT.urls.thumb(S.lib.videos[id]) }));
         if (rec.duration && !cardEl.querySelector('.dur')) cardEl.append(h('span.dur', LT.fmtTime(rec.duration)));
       }
       if (++thumbTick % 20 === 0 && S.route.view !== 'watch') { S.lib.channels = S.lib.channels.map((c) => c); }
@@ -347,7 +354,7 @@
   LT.applySettings = () => {
     const s = S.settings;
     LT.setLang(s.lang);
-    document.body.className = `theme-${s.theme} accent-${s.accent}`;
+    document.body.className = `theme-${s.theme} accent-${s.accent}${LT.mode === 'web' ? ' web' : ''}${s.tvMode === 'on' || (s.tvMode !== 'off' && LT.isTV) ? ' tv' : ''}`;
     $('#search').placeholder = t('search');
     $('#shell').classList.toggle('collapsed', Boolean(s.sidebarCollapsed));
     S.ai.enabled = s.aiEnabled; S.ai.model = s.aiModel;
@@ -383,6 +390,7 @@
     $('#btnMax').onclick = () => window.liwa.window.maximize();
     $('#btnClose').onclick = () => window.liwa.window.close();
     $('#btnAddFolder').onclick = () => actions.addFolder();
+    if (LT.mode === 'web' && !(S.auth && S.auth.admin)) $('#btnAddFolder').hidden = true;
     $('#btnSettings').onclick = () => router.go('#/settings');
     $('#searchForm').onsubmit = (e) => { e.preventDefault(); const q = $('#search').value.trim(); if (q) router.go(`#/search?q=${encodeURIComponent(q)}`); };
     $('#btnAiSearch').onclick = () => { const q = $('#search').value.trim(); if (!q) { $('#search').focus(); return; } S.pendingAiSearch = q; router.go(`#/search?q=${encodeURIComponent(q)}`); };
@@ -406,6 +414,8 @@
 
   // ---------- الإقلاع
   async function boot() {
+    if (LT.beforeBoot && !(await LT.beforeBoot())) return;
+    if (window.liwa.auth) { S.auth = await window.liwa.auth.status(); S.site = S.auth.site || null; }
     const [info, settings, lib, user, pls, ai, lockSt] = await Promise.all([
       window.liwa.app.info(), window.liwa.settings.get(), window.liwa.library.get(), window.liwa.user.get(), window.liwa.playlists.list(), window.liwa.ai.status(), window.liwa.lock.status(),
     ]);

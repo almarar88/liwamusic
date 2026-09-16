@@ -4,7 +4,7 @@ window.LT = window.LT || {};
 (function (LT) {
   const DICT = {
     ar: {
-      play: 'تشغيل', pause: 'إيقاف مؤقت', home: 'الرئيسية', shorts: 'Shorts', subs: 'الاشتراكات', channels: 'القنوات', library: 'المكتبة',
+      play: 'تشغيل', pause: 'إيقاف مؤقت', copyLink: 'نسخ الرابط', studio: 'لوحة التحكم', adminLogin: 'دخول المشرف', upload: 'رفع مقاطع', emptyWeb: 'لا توجد مقاطع بعد', emptyWebHint: 'عندما يرفع المشرف مقاطع ستظهر هنا للجميع.', home: 'الرئيسية', shorts: 'Shorts', subs: 'الاشتراكات', channels: 'القنوات', library: 'المكتبة',
       history: 'السجل', later: 'شاهد لاحقًا', liked: 'الفيديوهات المعجب بها', playlists: 'قوائم التشغيل',
       all: 'كل الفيديوهات', ai: 'الذكاء الاصطناعي', settings: 'الإعدادات', search: 'ابحث',
       views: 'مشاهدة', view1: 'مشاهدة واحدة', noViews: 'لم يُشاهد', ago: 'قبل', justNow: 'الآن',
@@ -32,7 +32,7 @@ window.LT = window.LT || {};
       why_channel: 'من قناة تتابعها', why_tags: 'يشبه ما تشاهده', why_resume: 'لم تكمله', why_new: 'لم تشاهده بعد', why_recent: 'جديد في مكتبتك', why_title: 'عنوان مشابه',
     },
     en: {
-      play: 'Play', pause: 'Pause', home: 'Home', shorts: 'Shorts', subs: 'Subscriptions', channels: 'Channels', library: 'Library',
+      play: 'Play', pause: 'Pause', copyLink: 'Copy link', studio: 'Studio', adminLogin: 'Admin login', upload: 'Upload videos', emptyWeb: 'No videos yet', emptyWebHint: 'Videos the admin uploads will appear here for everyone.', home: 'Home', shorts: 'Shorts', subs: 'Subscriptions', channels: 'Channels', library: 'Library',
       history: 'History', later: 'Watch later', liked: 'Liked videos', playlists: 'Playlists',
       all: 'All videos', ai: 'AI', settings: 'Settings', search: 'Search',
       views: 'views', view1: '1 view', noViews: 'No views', ago: 'ago', justNow: 'just now',
@@ -60,6 +60,10 @@ window.LT = window.LT || {};
       why_channel: 'From a channel you follow', why_tags: 'Similar to what you watch', why_resume: 'Unfinished', why_new: 'Not watched yet', why_recent: 'New in your library', why_title: 'Similar title',
     },
   };
+  LT.mode = LT.mode || 'electron';
+  const b64 = (s) => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  LT.b64 = b64;
+  LT.urls = LT.urls || { video: (v) => `liwa://video/${b64(v.path)}`, thumb: (v) => `liwa://thumb/${v.thumb}` };
   LT.lang = 'ar';
   const t = (k) => (DICT[LT.lang] && DICT[LT.lang][k]) || DICT.ar[k] || k;
   LT.t = t;

@@ -175,4 +175,6 @@ function search(query, videos, user, { limit = 200 } = {}) {
   return out.slice(0, limit);
 }
 
-module.exports = { homeFeed, related, search, profile, score, tokens, diversify };
+const API = { homeFeed, related, search, profile, score, tokens, diversify };
+if (typeof module !== 'undefined' && module.exports) module.exports = API;
+else if (typeof window !== 'undefined') window.LTRecommend = API;

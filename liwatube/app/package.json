@@ -1,0 +1,22 @@
+{
+  "name": "liwatube-app",
+  "version": "1.0.0",
+  "description": "LiwaTube للهاتف والتلفاز (Android APK) — تطبيق مشاهدة يتصل بخادم LiwaTube · تم إنشاؤه عن طريق LiwaMusic",
+  "private": true,
+  "scripts": {
+    "build:www": "node scripts/build-www.mjs",
+    "test": "node scripts/selftest.mjs",
+    "sync": "cap sync android",
+    "add:android": "cap add android",
+    "open:android": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/app": "^6.0.2",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/status-bar": "^6.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0"
+  }
+}
