@@ -21,6 +21,15 @@
 
 ---
 
+## ⬇️ التحميل
+
+| | |
+|---|---|
+| **الكمبيوتر (ويندوز 64‑بت)** | **[LiwaTube-Setup-1.0.0.exe](https://github.com/almarar88/liwamusic/releases/download/tube-v1.0.0/LiwaTube-Setup-1.0.0.exe)** · ~90 ميجابايت |
+| **الهاتف + تلفاز أندرويد** | **[LiwaTube.apk](https://github.com/almarar88/liwamusic/releases/download/tube-android-v1.1.0/LiwaTube.apk)** · ~3 ميجابايت |
+
+> ويندوز قد يُظهر تنبيه SmartScreen لأن الملف غير موقّع رقميًا — «مزيد من المعلومات» ثم «تشغيل على أي حال».
+
 ## ⚡ الطريقة الأسهل: «مشاركة» من تطبيق الويندوز (بلا حسابات، بلا رفع)
 
 1. ثبّت **LiwaTube لويندوز** وأضف مجلد فيديوهاتك.
@@ -99,7 +108,7 @@ docker compose up -d      # عدّل LIWATUBE_ADMIN_PASSWORD في docker-compose
 
 ## 📱📺 التطبيق: هاتف + تلفاز في APK واحد
 
-### **[⬇ تحميل LiwaTube.apk (هاتف + تلفاز أندرويد)](https://github.com/almarar88/liwamusic/releases/download/tube-android-v1.0.0/LiwaTube.apk)**
+### **[⬇ تحميل LiwaTube.apk (هاتف + تلفاز أندرويد)](https://github.com/almarar88/liwamusic/releases/download/tube-android-v1.1.0/LiwaTube.apk)**
 
 `LiwaTube.apk` · ~3 ميجابايت · أندرويد 6+ · [كل الإصدارات](https://github.com/almarar88/liwamusic/releases)
 
