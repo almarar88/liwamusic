@@ -71,6 +71,24 @@
   const R = () => window.LTRecommend;
   const noop = async () => null;
 
+  /** رابط عميق liwatube://connect?server=... (من مسح QR) أو ?server= في العنوان. */
+  function serverFromLaunch(url) {
+    try {
+      const u = new URL(String(url || ''));
+      const s = u.searchParams.get('server');
+      if (s && /^https?:\/\//i.test(s)) return s.replace(/\/+$/, '');
+    } catch { /* ليس رابطًا */ }
+    return null;
+  }
+  function watchDeepLinks() {
+    const cap = window.Capacitor;
+    const App = cap && cap.Plugins && cap.Plugins.App;
+    if (!App) return;
+    try { App.addListener('appUrlOpen', (e) => { const s = serverFromLaunch(e && e.url); if (s) { store.set('lt.server', s); location.reload(); } }); } catch { /* */ }
+    try { App.getLaunchUrl && App.getLaunchUrl().then((r) => { const s = serverFromLaunch(r && r.url); if (s && s !== API) { store.set('lt.server', s); API = s; } }).catch(() => {}); } catch { /* */ }
+    try { App.addListener('backButton', () => { if (location.hash && location.hash !== '#/home') history.back(); else App.exitApp && App.exitApp(); }); } catch { /* */ }
+  }
+
   // ---------- شاشة الاتصال (التطبيق المستقل)
   async function connectScreen() {
     const box = document.getElementById('connect');
@@ -94,6 +112,12 @@
     });
   }
   LT.beforeBoot = async () => {
+    if (STANDALONE) {
+      watchDeepLinks();
+      const fromQuery = serverFromLaunch(location.href);
+      if (fromQuery) { API = fromQuery; store.set('lt.server', API); }
+      await new Promise((r) => setTimeout(r, 150)); // فرصة لـ getLaunchUrl
+    }
     if (STANDALONE && !API) await connectScreen();
     try { SITE = await req('GET', '/api/site'); }
     catch { if (STANDALONE) { API = ''; store.set('lt.server', ''); await connectScreen(); SITE = await req('GET', '/api/site'); } else { document.body.innerHTML = '<div class="empty"><h2>تعذّر الوصول إلى خادم LiwaTube</h2></div>'; return false; } }
@@ -186,7 +210,7 @@
       related: async (id) => R().related(LIB.videos[id], LIB.videos, user),
       search: async (q) => R().search(q, LIB.videos, user),
     },
-    subtitles: { list: async (id) => ((LIB.videos[id] && LIB.videos[id].subs) || []).map((s) => ({ ...s, url: `${API}/api/sub/${id}/${s.i}` })) },
+    subtitles: { list: async (id) => (await req('GET', `/api/subs/${id}`).catch(() => [])).map((s) => ({ ...s, url: `${API}/api/sub/${id}/${s.i}` })) },
     ai: {
       status: async () => ({ enabled: Boolean(SITE && SITE.aiEnabled && (isAdmin() || SITE.aiPublic)), hasKey: Boolean(SITE && SITE.aiEnabled), model: SITE ? SITE.aiModel : '', models: [] }),
       setKey: noop, clearKey: noop,

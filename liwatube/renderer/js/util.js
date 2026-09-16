@@ -4,7 +4,7 @@ window.LT = window.LT || {};
 (function (LT) {
   const DICT = {
     ar: {
-      play: 'تشغيل', pause: 'إيقاف مؤقت', copyLink: 'نسخ الرابط', studio: 'لوحة التحكم', adminLogin: 'دخول المشرف', upload: 'رفع مقاطع', emptyWeb: 'لا توجد مقاطع بعد', emptyWebHint: 'عندما يرفع المشرف مقاطع ستظهر هنا للجميع.', home: 'الرئيسية', shorts: 'Shorts', subs: 'الاشتراكات', channels: 'القنوات', library: 'المكتبة',
+      play: 'تشغيل', pause: 'إيقاف مؤقت', shareNav: 'مشاركة', copyLink: 'نسخ الرابط', studio: 'لوحة التحكم', adminLogin: 'دخول المشرف', upload: 'رفع مقاطع', emptyWeb: 'لا توجد مقاطع بعد', emptyWebHint: 'عندما يرفع المشرف مقاطع ستظهر هنا للجميع.', home: 'الرئيسية', shorts: 'Shorts', subs: 'الاشتراكات', channels: 'القنوات', library: 'المكتبة',
       history: 'السجل', later: 'شاهد لاحقًا', liked: 'الفيديوهات المعجب بها', playlists: 'قوائم التشغيل',
       all: 'كل الفيديوهات', ai: 'الذكاء الاصطناعي', settings: 'الإعدادات', search: 'ابحث',
       views: 'مشاهدة', view1: 'مشاهدة واحدة', noViews: 'لم يُشاهد', ago: 'قبل', justNow: 'الآن',
@@ -32,7 +32,7 @@ window.LT = window.LT || {};
       why_channel: 'من قناة تتابعها', why_tags: 'يشبه ما تشاهده', why_resume: 'لم تكمله', why_new: 'لم تشاهده بعد', why_recent: 'جديد في مكتبتك', why_title: 'عنوان مشابه',
     },
     en: {
-      play: 'Play', pause: 'Pause', copyLink: 'Copy link', studio: 'Studio', adminLogin: 'Admin login', upload: 'Upload videos', emptyWeb: 'No videos yet', emptyWebHint: 'Videos the admin uploads will appear here for everyone.', home: 'Home', shorts: 'Shorts', subs: 'Subscriptions', channels: 'Channels', library: 'Library',
+      play: 'Play', pause: 'Pause', shareNav: 'Share', copyLink: 'Copy link', studio: 'Studio', adminLogin: 'Admin login', upload: 'Upload videos', emptyWeb: 'No videos yet', emptyWebHint: 'Videos the admin uploads will appear here for everyone.', home: 'Home', shorts: 'Shorts', subs: 'Subscriptions', channels: 'Channels', library: 'Library',
       history: 'History', later: 'Watch later', liked: 'Liked videos', playlists: 'Playlists',
       all: 'All videos', ai: 'AI', settings: 'Settings', search: 'Search',
       views: 'views', view1: '1 view', noViews: 'No views', ago: 'ago', justNow: 'just now',
@@ -127,7 +127,7 @@ window.LT = window.LT || {};
     close: 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z',
     expand: 'M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z',
     plus: 'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z', film: 'M4 4h16v16H4zM2 6h2M2 10h2M2 14h2M2 18h2M20 6h2M20 10h2M20 14h2M20 18h2',
-    send: 'M2 21l21-9L2 3v7l15 2-15 2z', insights: 'M5 9h3v11H5zm5.5-5h3v16h-3zM16 13h3v7h-3z',
+    send: 'M2 21l21-9L2 3v7l15 2-15 2z', share: 'M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 10-3-3c0 .24.04.47.09.7L8.04 9.81A2.99 2.99 0 003 12a3 3 0 004.99 2.24l7.12 4.16c-.05.21-.08.43-.08.65a2.92 2.92 0 102.92-2.92z', wifi: 'M1 9l2 2a12.7 12.7 0 0118 0l2-2A15.5 15.5 0 001 9zm8 8l3 3 3-3a4.2 4.2 0 00-6 0zm-4-4l2 2a9.9 9.9 0 0110 0l2-2a12.7 12.7 0 00-14 0z', globe: 'M12 2a10 10 0 100 20 10 10 0 000-20zm6.93 6h-2.95a15.7 15.7 0 00-1.38-3.56A8 8 0 0118.93 8zM12 4a14 14 0 011.91 4h-3.82A14 14 0 0112 4zM4.26 14a8 8 0 010-4h3.38a16.5 16.5 0 000 4H4.26zm.81 2h2.95c.32 1.25.78 2.45 1.38 3.56A8 8 0 015.07 16zM8.02 8H5.07a8 8 0 014.33-3.56A15.7 15.7 0 008.02 8zM12 20a14 14 0 01-1.91-4h3.82A14 14 0 0112 20zm2.34-6H9.66a14.7 14.7 0 010-4h4.68a14.7 14.7 0 010 4zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8 8 0 01-4.33 3.56zM16.36 14a16.5 16.5 0 000-4h3.38a8 8 0 010 4h-3.38z', insights: 'M5 9h3v11H5zm5.5-5h3v16h-3zM16 13h3v7h-3z',
   };
   LT.icon = (name, size) => icon(LT.icons[name] || name, size);
 

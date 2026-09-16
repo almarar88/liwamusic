@@ -563,5 +563,61 @@
       h('div.nav-foot', `LiwaTube ${st.info?.version || ''} • ${st.info?.creator || ''}`));
   }
 
-  LT.views = { info, allInfo, card, avatar, home, shorts, channels, subs, channel, all, search, history, later, liked, playlists, playlist, watch, ai, settings, channelName };
+  // ---------- مشاركة (خادم مضمَّن)
+  async function share() {
+    const ar = LT.lang === 'ar';
+    const T = (a, e) => (ar ? a : e);
+    let st = await window.liwa.share.status();
+    const root = h('div.settings');
+    const box = h('div');
+    const copy = async (txt) => { try { await navigator.clipboard.writeText(txt); LT.toast(t('copied')); } catch { /* */ } };
+    const qrBox = async (url) => { const img = h('img', { src: await window.liwa.share.qr(url), width: 200, height: 200, style: { borderRadius: '10px', background: '#fff', padding: '6px' } }); return img; };
+    async function render() {
+      box.innerHTML = '';
+      const running = st.running;
+      const toggle = h('button.btn', { class: running ? 'on' : 'accent', onclick: async () => { toggle.disabled = true; try { st = running ? await window.liwa.share.stop() : await window.liwa.share.start(); } catch (e) { LT.toast(e.message, { err: true }); } st = await window.liwa.share.status(); render(); } }, LT.icon('share'), running ? T('إيقاف المشاركة', 'Stop sharing') : T('تشغيل المشاركة', 'Start sharing'));
+      box.append(
+        h('div.ai-note', LT.icon('share'), h('span', T('عند تشغيل المشاركة يصبح هذا الكمبيوتر «خادم LiwaTube»: كل مقاطع مكتبتك تظهر فورًا لمن يفتح الرابط من الهاتف أو التلفاز أو المتصفح، بلا رفع وبلا حسابات. الكمبيوتر يجب أن يبقى مفتوحًا أثناء المشاهدة.', 'When sharing is on, this computer becomes your LiwaTube server: everyone who opens the link on a phone, TV or browser sees your library instantly. Keep the computer on while they watch.'))),
+        h('div.set-group', h('h3', LT.icon('wifi', 18), T('داخل البيت (نفس الواي‑فاي)', 'At home (same Wi‑Fi)')),
+          h('div.set-row', h('div.lbl', T('الحالة', 'Status'), h('small', running ? T(`يعمل على المنفذ ${st.port}`, `Running on port ${st.port}`) : T('متوقف', 'Stopped'))), toggle),
+        ),
+      );
+      if (running) {
+        const lanUrl = st.lan[0] || `http://localhost:${st.port}`;
+        const g = box.lastChild;
+        g.append(h('div.set-row', h('div.lbl', T('الرابط', 'Link'), h('small', T('اكتبه في تطبيق الهاتف أو افتحه في أي متصفح على نفس الشبكة', 'Type it in the phone app or open it in any browser on the same network'))),
+          h('div.row', { style: { flexWrap: 'wrap' } }, st.lan.map((u) => h('code', { style: { direction: 'ltr', background: 'var(--bg2)', padding: '6px 10px', borderRadius: '8px', fontSize: '15px' } }, u)), h('button.btn.sm', { onclick: () => copy(lanUrl) }, t('copyLink')))));
+        g.append(h('div.set-row', h('div.lbl', T('امسح بكاميرا الهاتف', 'Scan with the phone camera'), h('small', T('يفتح الرابط في المتصفح، ومن هناك زر «فتح في تطبيق LiwaTube»', 'Opens in the browser, with an "Open in LiwaTube app" button'))), await qrBox(lanUrl)));
+        g.append(h('div.set-row', h('div.lbl', T('كلمة مرور المشرف (لك فقط)', 'Admin password (you only)'), h('small', T('تحتاجها فقط إن أردت لوحة التحكم من الهاتف أو المتصفح؛ المشاهدون لا يحتاجون شيئًا', 'Only needed for the Studio from a phone or browser; viewers need nothing'))),
+          h('div.row', h('code', { style: { direction: 'ltr', background: 'var(--bg2)', padding: '6px 10px', borderRadius: '8px', fontSize: '15px' } }, st.password), h('button.btn.sm', { onclick: () => {
+            const inp = h('input', { type: 'text', value: st.password });
+            LT.modal({ title: T('تغيير كلمة المرور', 'Change password'), body: (b) => b.append(h('div.field', inp)), actions: [{ label: t('cancel') }, { label: t('save'), cls: 'primary', onClick: async () => { try { await window.liwa.share.setPassword(inp.value); st = await window.liwa.share.status(); render(); } catch { LT.toast(T('4 أحرف على الأقل', 'At least 4 characters'), { err: true }); return false; } } }] });
+          } }, t('edit')))));
+        // الإنترنت
+        const tn = st.tunnel || {};
+        const tBtn = h('button.btn', { class: tn.running ? 'on' : 'accent', disabled: tn.starting, onclick: async () => { tBtn.disabled = true; try { st = tn.running ? await window.liwa.share.tunnelStop() : await window.liwa.share.tunnelStart(); } catch (e) { LT.toast(`${T('تعذّر فتح النفق', 'Tunnel failed')}: ${e.message}`, { err: true }); } st = await window.liwa.share.status(); render(); } }, LT.icon('globe'), tn.running ? T('إيقاف مشاركة الإنترنت', 'Stop internet sharing') : tn.starting ? T('جارٍ الفتح…', 'Opening…') : T('مشاركة على الإنترنت', 'Share on the internet'));
+        const ig = h('div.set-group', h('h3', LT.icon('globe', 18), T('من أي مكان (الإنترنت)', 'From anywhere (internet)')),
+          h('div.set-row', h('div.lbl', T('نفق مجاني بلا حساب', 'Free tunnel, no account'), h('small', tn.progress != null ? T(`جارٍ تنزيل الأداة ${Math.round(tn.progress * 100)}%…`, `Downloading tool ${Math.round(tn.progress * 100)}%…`) : T('يعطيك رابط https يعمل من أي شبكة ما دام هذا الكمبيوتر مفتوحًا. الرابط يتغيّر عند كل تشغيل، فأرسله من جديد.', 'Gives an https link that works from any network while this computer is on. The link changes on each start.'))), tBtn));
+        if (tn.running && tn.url) {
+          ig.append(h('div.set-row', h('div.lbl', T('رابط الإنترنت', 'Internet link')), h('div.row', h('code', { style: { direction: 'ltr', background: 'var(--bg2)', padding: '6px 10px', borderRadius: '8px', fontSize: '14px' } }, tn.url), h('button.btn.sm', { onclick: () => copy(tn.url) }, t('copyLink')))));
+          ig.append(h('div.set-row', h('div.lbl', 'QR'), await qrBox(tn.url)));
+        }
+        if (tn.error && !tn.running) ig.append(h('div.set-row', h('div.lbl', { style: { color: '#ff6b6b' } }, `${T('خطأ', 'Error')}: ${tn.error}`)));
+        box.append(ig);
+      }
+      const s = S().settings;
+      const sw = (key) => { const el = h('span.switch', { class: s[key] ? 'on' : '', onclick: async () => { s[key] = !s[key]; await window.liwa.settings.set({ [key]: s[key] }); el.classList.toggle('on', s[key]); } }); return el; };
+      box.append(h('div.set-group', h('h3', LT.icon('settings', 18), t('settings')),
+        h('div.set-row', h('div.lbl', T('تشغيل المشاركة تلقائيًا عند فتح التطبيق', 'Start sharing when the app opens')), sw('shareAutoStart')),
+        h('div.set-row', h('div.lbl', T('فتح مشاركة الإنترنت تلقائيًا معها', 'Also open internet sharing automatically')), sw('shareTunnelAuto')),
+        h('div.set-row', h('div.lbl', T('تطبيق الهاتف والتلفاز', 'Phone & TV app'), h('small', T('ثبّته على الهاتف أو تلفاز أندرويد ثم امسح الرمز أو اكتب الرابط', 'Install on a phone or Android TV, then scan the code or type the link'))),
+          h('button.btn.sm', { onclick: () => window.liwa.app.openExternal('https://github.com/almarar88/liwamusic/releases/latest/download/LiwaTube.apk') }, '⬇ LiwaTube.apk'))));
+    }
+    await render();
+    if (!LT._shareBound) { LT._shareBound = true; window.liwa.share.onState((s2) => { if (S().route.view === 'share') { window.liwa.share.status().then((x) => { st = x; render(); }); } }); }
+    root.append(h('div.section-h', LT.icon('share'), t('shareNav')), box);
+    return root;
+  }
+
+  LT.views = { share, info, allInfo, card, avatar, home, shorts, channels, subs, channel, all, search, history, later, liked, playlists, playlist, watch, ai, settings, channelName };
 })(window.LT);

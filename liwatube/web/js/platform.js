@@ -93,6 +93,15 @@
 
   // في وضع التلفاز: ركّز أول بطاقة بعد كل تنقّل، وركّز المشغّل في صفحة المشاهدة
   window.addEventListener('hashchange', () => { if (!tvOn()) return; setTimeout(() => { const p = $('.watch .player'); if (p) p.focus(); else { const c = $('#view .card') || $('#view .chip'); if (c) c.focus({ preventScroll: true }); } }, 700); });
+  // أندرويد في المتصفح (من مسح QR): اقترح فتح الرابط في تطبيق LiwaTube
+  if (/Android/i.test(UA) && !window.LT_STANDALONE && !localStorage.getItem('lt.appBannerDismissed')) {
+    document.addEventListener('DOMContentLoaded', () => {
+      const apk = 'https://github.com/almarar88/liwamusic/releases/latest/download/LiwaTube.apk';
+      const intent = `intent://connect?server=${encodeURIComponent(location.origin)}#Intent;scheme=liwatube;package=com.liwamusic.liwatube;S.browser_fallback_url=${encodeURIComponent(apk)};end`;
+      const bar = h('div.app-banner', h('span.grow', 'افتح في تطبيق LiwaTube للهاتف'), h('a.btn.sm.accent', { href: intent }, 'فتح'), h('button.icon-btn', { onclick: () => { localStorage.setItem('lt.appBannerDismissed', '1'); bar.remove(); } }, LT.icon('close', 18)));
+      document.body.prepend(bar);
+    });
+  }
   // اللمس: إلغاء المعاينة عند التمرير
   if ('ontouchstart' in window) document.body.classList.add('touch');
 })(window.LT = window.LT || {});

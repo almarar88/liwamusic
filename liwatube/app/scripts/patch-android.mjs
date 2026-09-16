@@ -22,6 +22,17 @@ if (!m.includes('android.software.leanback')) {
 }
 if (!m.includes('android:banner=')) m = m.replace('<application', '<application\n        android:banner="@drawable/banner"');
 if (!m.includes('android:usesCleartextTraffic')) m = m.replace('<application', '<application\n        android:usesCleartextTraffic="true"');
+if (!m.includes('android:scheme="liwatube"')) {
+  const at = m.indexOf('</activity>');
+  m = m.slice(0, at) + `
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="liwatube" />
+            </intent-filter>
+        ` + m.slice(at);
+}
 if (!m.includes('LEANBACK_LAUNCHER')) {
   m = m.replace('<category android:name="android.intent.category.LAUNCHER" />', '<category android:name="android.intent.category.LAUNCHER" />\n                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />');
 }

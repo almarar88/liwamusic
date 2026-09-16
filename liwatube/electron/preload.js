@@ -95,6 +95,16 @@ contextBridge.exposeInMainWorld('liwa', {
     insights: () => call('ai:insights'),
     clearAnalysis: (id) => call('ai:clearAnalysis', id),
   },
+  share: {
+    status: () => call('share:status'),
+    start: () => call('share:start'),
+    stop: () => call('share:stop'),
+    tunnelStart: () => call('share:tunnelStart'),
+    tunnelStop: () => call('share:tunnelStop'),
+    qr: (text) => call('share:qr', text),
+    setPassword: (pw) => call('share:setPassword', pw),
+    onState: (fn) => on('share:state', fn),
+  },
   lock: {
     status: () => call('lock:status'),
     setPin: (pin, current) => call('lock:setPin', pin, current),

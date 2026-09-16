@@ -49,6 +49,10 @@ const DEFAULTS = {
     aiKeySet: false,
     lockEnabled: false,
     lockIdleMinutes: 0,      // 0 = لا يقفل عند الخمول
+    shareAutoStart: false,   // تشغيل خادم المشاركة عند فتح التطبيق
+    sharePort: 8787,
+    sharePassword: '',       // كلمة مرور المشرف في خادم المشاركة (تُولَّد تلقائيًا)
+    shareTunnelAuto: false,  // فتح نفق الإنترنت تلقائيًا مع المشاركة
     lastView: 'home',
     lastVideoId: null,
     sidebarCollapsed: false,

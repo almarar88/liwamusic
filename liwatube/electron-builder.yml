@@ -7,6 +7,9 @@ directories:
 files:
   - electron/**
   - renderer/**
+  - server/**
+  - web/**
+  - build/icon.png
   - package.json
   - "!**/*.map"
   - "!**/test/**"

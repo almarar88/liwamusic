@@ -10,6 +10,16 @@ on:
   push:
     tags:
       - "tube-v*"
+    branches:
+      - "claude/**"
+    paths:
+      - "liwatube/electron/**"
+      - "liwatube/renderer/**"
+      - "liwatube/server/**"
+      - "liwatube/web/**"
+      - "liwatube/package.json"
+      - "liwatube/electron-builder.yml"
+      - ".github/workflows/build-liwatube.yml"
 
 permissions:
   contents: write
@@ -27,6 +37,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: تحديد وسم الإصدار
+        id: tag
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then TAG="${{ github.event.inputs.tag }}";
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then TAG="${{ github.ref_name }}";
+          else TAG="tube-v$(node -p "require('./package.json').version")"; fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"; echo "الوسم: $TAG"
 
       - name: تثبيت الاعتماديات
         run: npm install --no-audit --no-fund
@@ -47,8 +66,9 @@ jobs:
       - name: نشر الإصدار
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
-          name: LiwaTube ${{ github.event.inputs.tag || github.ref_name }}
+          tag_name: ${{ steps.tag.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: LiwaTube ${{ steps.tag.outputs.tag }}
           files: liwatube/release/LiwaTube-Setup-*.exe
           body: |
             ## LiwaTube — يوتيوبك الخاص، محلي ومدعوم بالذكاء الاصطناعي
@@ -58,6 +78,9 @@ jobs:
 
             أضف مجلد فيديوهاتك ليبدأ العرض: فهرسة، صور مصغّرة، قنوات من المجلدات،
             توصيات محلية، Shorts، سجل، شاهد لاحقًا، قوائم تشغيل.
+
+            **مشاركة مع الآخرين:** صفحة «مشاركة» تشغّل خادمًا من مكتبتك وتعرض رمز QR
+            يمسحه الهاتف بتطبيق LiwaTube، وزر «مشاركة على الإنترنت» يعطيك رابطًا للجميع.
 
             ميزات الذكاء الاصطناعي **مغلقة افتراضيًا** (تحتاج مفتاح Anthropic API مدفوعًا)،
             وتُفعَّل من: الإعدادات ← الذكاء الاصطناعي.

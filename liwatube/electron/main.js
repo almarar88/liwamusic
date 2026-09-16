@@ -20,6 +20,8 @@ const playlists = require('./lib/playlists');
 const subtitles = require('./lib/subtitles');
 const lock = require('./lib/lock');
 const { AI, MODELS, DEFAULT_MODEL } = require('./lib/ai');
+const { Share } = require('./lib/share');
+const { LiwaTubeServer } = require('../server/server');
 
 const APP_NAME = 'LiwaTube';
 const CREATOR = 'تم إنشاؤه عن طريق LiwaMusic';
@@ -27,6 +29,7 @@ const CREATOR = 'تم إنشاؤه عن طريق LiwaMusic';
 let win = null;
 let store = null;
 let ai = null;
+let share = null;
 let dataDir = null;
 let thumbDir = null;
 let scanning = false;
@@ -181,6 +184,59 @@ function touchHistory(id) {
   u.history = [{ id, at: Date.now() }, ...u.history.filter((h) => h.id !== id)].slice(0, 2000);
   u.lastPlayed[id] = Date.now();
   saveUser();
+}
+
+// ————————————————————————————————— المشاركة (خادم مضمَّن فوق المكتبة المحلية)
+
+/** يعرض مكتبة سطح المكتب للخادم المضمَّن بلا رفع. */
+function externalProvider() {
+  return {
+    videos: () => {
+      const l = lib(); const u = user(); const out = {};
+      for (const v of Object.values(l.videos)) {
+        if (!v.native) continue;
+        const ov = u.overrides[v.id] || {}; const ai = u.ai[v.id] || null;
+        out[v.id] = {
+          id: v.id, path: v.path, ext: v.ext, size: v.size, year: v.year,
+          title: ov.title || (ai && ai.title) || v.title, channel: ov.channel || v.channel, channelId: v.channelId,
+          description: ov.description || (ai && ai.description) || '', tags: ov.tags || (ai && ai.tags) || [],
+          duration: v.duration, width: v.width, height: v.height,
+          thumbPath: v.thumb ? path.join(thumbDir, String(v.thumb).split('?')[0]) : null, thumbAt: v.thumb ? Number(String(v.thumb).split('?v=')[1]) || 1 : 0,
+          addedAt: v.addedAt, updatedAt: ov.at || v.addedAt, ai,
+        };
+      }
+      return out;
+    },
+    update: async (id, patch) => {
+      const u = user();
+      if ('ai' in patch) { if (patch.ai) u.ai[id] = patch.ai; else delete u.ai[id]; }
+      const rest = { ...patch }; delete rest.ai;
+      if (Object.keys(rest).length) u.overrides[id] = { ...(u.overrides[id] || {}), ...rest, at: Date.now() };
+      saveUser();
+      send('library:updated', publicLibrary());
+    },
+    subtitlesFor: async (id) => { const v = lib().videos[id]; return v ? subtitles.findSidecars(v.path) : []; },
+  };
+}
+
+function setupShare() {
+  share = new Share({
+    dataDir,
+    createServer: (opts) => new LiwaTubeServer({ ...opts, dataDir: path.join(dataDir, 'share'), external: externalProvider() }),
+    onChange: (st) => send('share:state', st),
+    log: (m) => console.log('[share]', m),
+  });
+}
+function sharePassword() {
+  const s = settings();
+  if (!s.sharePassword) { s.sharePassword = String(Math.floor(100000 + Math.random() * 900000)); store.write('settings.json'); }
+  return s.sharePassword;
+}
+async function shareStart() {
+  const s = settings();
+  const st = await share.start({ port: Number(s.sharePort) || 8787, password: sharePassword() });
+  if (s.shareTunnelAuto) share.tunnelStart().catch(() => {});
+  return st;
 }
 
 // ————————————————————————————————— IPC
@@ -442,6 +498,21 @@ function registerIpc() {
   });
   handle('ai:insights', () => ai.insights({ videos: lib().videos, userdata: user(), model: settings().aiModel, lang: settings().lang }));
 
+  // ---- المشاركة
+  handle('share:status', () => ({ ...share.status(), password: sharePassword(), port: Number(settings().sharePort) || 8787, autoStart: Boolean(settings().shareAutoStart), tunnelAuto: Boolean(settings().shareTunnelAuto) }));
+  handle('share:start', () => shareStart());
+  handle('share:stop', () => share.stop());
+  handle('share:tunnelStart', () => share.tunnelStart());
+  handle('share:tunnelStop', () => share.tunnelStop());
+  handle('share:qr', (text) => share.qr(text));
+  handle('share:setPassword', (pw) => {
+    const v = String(pw || '').trim();
+    if (v.length < 4) throw new Error('WEAK_PASSWORD');
+    settings().sharePassword = v; store.write('settings.json');
+    share.setPassword(v);
+    return true;
+  });
+
   // ---- القفل
   const lockFile = () => path.join(dataDir, 'lock.json');
   const readLock = () => { try { return JSON.parse(fs.readFileSync(lockFile(), 'utf8')); } catch { return null; } };
@@ -514,6 +585,7 @@ if (!gotLock) {
     fs.mkdirSync(thumbDir, { recursive: true });
     store = new Store(dataDir);
     ai = new AI({ dir: dataDir, safeStorage });
+    setupShare();
     registerProtocol();
     registerIpc();
     createWindow();
@@ -521,11 +593,12 @@ if (!gotLock) {
     pendingOpen = argvFiles(process.argv);
     // مسح تزايدي هادئ عند البدء
     setTimeout(() => runScan().catch(() => {}), 1200);
+    if (settings().shareAutoStart) setTimeout(() => shareStart().catch((e) => console.log('[share]', e.message)), 2000);
   });
 
   app.on('window-all-closed', async () => {
     try { await store.flushAll(); } catch { /* تجاهل */ }
     app.quit();
   });
-  app.on('before-quit', async () => { try { await store.flushAll(); } catch { /* تجاهل */ } });
+  app.on('before-quit', async () => { try { if (share) await share.stop(); await store.flushAll(); } catch { /* تجاهل */ } });
 }

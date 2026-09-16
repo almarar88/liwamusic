@@ -19,7 +19,8 @@
     "app:www": "node app/scripts/build-www.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.71.0"
+    "@anthropic-ai/sdk": "^0.71.0",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "electron": "^38.0.0",

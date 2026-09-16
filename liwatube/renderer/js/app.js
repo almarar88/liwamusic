@@ -52,6 +52,7 @@
         case 'watch': el = await V().watch(r.params[0]); hideMini(); break;
         case 'ai': el = V().ai(); break;
         case 'settings': el = V().settings(); break;
+        case 'share': el = await V().share(); break;
         case 'studio': el = LT.studio ? await LT.studio.render(r.params, r.q) : await V().home(); break;
         default: el = await V().home();
       }
@@ -84,6 +85,7 @@
       subs.slice(0, 12).map((c) => h('button.nav-item.nav-ch', { class: r.view === 'channel' && r.params[0] === c.id ? 'on' : '', onclick: () => router.go(`#/channel/${c.id}`) }, V().avatar(c.name), h('span.ellip', c.name))),
       item('#/channels', 'channels', t('channels'), S.lib.channels.length),
       h('div.nav-sep'),
+      LT.mode !== 'web' && window.liwa.share ? item('#/share', 'share', t('shareNav')) : null,
       LT.mode === 'web' && S.auth && S.auth.admin ? item('#/studio', 'folder', t('studio')) : null,
       LT.mode === 'web' && !(S.auth && S.auth.admin) ? h('button.nav-item', { onclick: () => LT.studio.login() }, LT.icon('channels'), h('span.ellip', t('adminLogin'))) : null,
       LT.mode === 'web' && !S.ai.enabled ? null : item('#/ai', 'ai', t('ai')), item('#/settings', 'settings', t('settings')),

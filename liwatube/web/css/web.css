@@ -112,3 +112,6 @@ body.tv .player.paused .p-controls, body.tv .player:focus .p-controls { opacity:
 body.tv .mini { width: 480px; }
 body.tv .thumb video.hover { display: none; }
 body.tv .comments .c-in, body.tv .chat-in { display: none; }
+
+/* لافتة فتح التطبيق */
+.app-banner { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: rgb(var(--accent) / .15); border-bottom: 1px solid rgb(var(--accent) / .4); font-size: 13.5px; position: fixed; top: 0; left: 0; right: 0; z-index: 70; backdrop-filter: blur(8px); }

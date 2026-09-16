@@ -325,6 +325,57 @@ section('الخادم (server)');
   const srv2 = new LiwaTubeServer({ dataDir, port: 0, host: '127.0.0.1', log: () => {} });
   ok(srv2.db.data.admin && srv2.db.data.settings.siteName === 'قناة ليوا' && Object.keys(srv2.db.data.videos).length === 0, 'قاعدة البيانات تُحفظ على القرص');
 }
+// ————————————————————————————————— المكتبة الخارجية (مشاركة مكتبة سطح المكتب) + المشاركة
+section('الخادم فوق مكتبة سطح المكتب (external) والمشاركة (share)');
+{
+  const { LiwaTubeServer } = require(path.join(root, 'server/server.js'));
+  const shareLib = require(path.join(root, 'electron/lib/share.js'));
+  ok(shareLib.parseTunnelUrl('2026 INF |  https://abc-def-123.trycloudflare.com   |') === 'https://abc-def-123.trycloudflare.com', 'استخراج رابط النفق');
+  ok(shareLib.parseTunnelUrl('no url here') === null, 'لا رابط → null');
+  ok(Array.isArray(shareLib.lanAddresses()), 'عناوين الشبكة المحلية قائمة');
+  const extDir = path.join(tmp, 'ext'); await fsp.mkdir(extDir, { recursive: true });
+  const vidFile = path.join(extDir, 'My Clip.mp4'); await fsp.writeFile(vidFile, Buffer.alloc(5000, 3));
+  await fsp.writeFile(path.join(extDir, 'My Clip.ar.srt'), '1\n00:00:01,000 --> 00:00:02,000\nأهلا\n');
+  const thumb = path.join(extDir, 'thumb.jpg'); await fsp.writeFile(thumb, PNG_1PX_JPEG());
+  const updates = [];
+  const ext = {
+    videos: () => ({ ext1: { id: 'ext1', path: vidFile, ext: 'mp4', size: 5000, title: 'مقطعي', channel: 'مكتبتي', channelId: 'ch_x', duration: 12, width: 320, height: 180, thumbPath: thumb, thumbAt: 3, addedAt: 1 } }),
+    update: async (id, patch) => updates.push([id, patch]),
+    subtitlesFor: async () => require(path.join(root, 'electron/lib/subtitles.js')).findSidecars(vidFile),
+  };
+  const srv = new LiwaTubeServer({ dataDir: path.join(tmp, 'share-data'), port: 0, host: '127.0.0.1', log: () => {}, external: ext, adminPassword: 'pw1234' });
+  await srv.listen();
+  const base = `http://127.0.0.1:${srv.port}`;
+  const tok = (await (await fetch(`${base}/api/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'pw1234' }) })).json()).data.token;
+  const lib = (await (await fetch(`${base}/api/library`)).json()).data;
+  ok(lib.videos.ext1 && lib.videos.ext1.title === 'مقطعي' && lib.videos.ext1.path === undefined && lib.videos.ext1.thumb && lib.channels[0].name === 'مكتبتي', 'مكتبة سطح المكتب تظهر للمشاهدين بلا مسارات');
+  let r = await fetch(`${base}/api/video/ext1`, { headers: { Range: 'bytes=0-9' } });
+  ok(r.status === 206 && (await r.arrayBuffer()).byteLength === 10, 'بث ملف المكتبة المحلية بـ Range');
+  ok((await fetch(`${base}/api/thumb/ext1.jpg`)).status === 200, 'الصورة المصغّرة من كاش سطح المكتب');
+  const subs = (await (await fetch(`${base}/api/subs/ext1`)).json()).data;
+  ok(subs.length === 1 && subs[0].lang === 'ar', 'الترجمات المجاورة تُدرج');
+  ok((await (await fetch(`${base}/api/sub/ext1/0`)).text()).startsWith('WEBVTT'), 'الترجمة المجاورة تُحوَّل إلى VTT');
+  await fetch(`${base}/api/view/ext1`, { method: 'POST', headers: { 'X-Device': 'd1' } });
+  ok((await (await fetch(`${base}/api/library`)).json()).data.videos.ext1.views === 1, 'مشاهدات المقاطع الخارجية تُحفظ');
+  r = await fetch(`${base}/api/admin/video/ext1`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ title: 'جديد', hidden: true }) });
+  ok(r.status === 200 && updates.length === 1 && updates[0][1].title === 'جديد', 'تعديل العنوان يمرّ إلى سطح المكتب');
+  ok(Object.keys((await (await fetch(`${base}/api/library`)).json()).data.videos).length === 0, 'الإخفاء يمنع ظهوره للزوار');
+  r = await fetch(`${base}/api/admin/thumb/ext1`, { method: 'POST', headers: { Authorization: `Bearer ${tok}` }, body: PNG_1PX_JPEG() });
+  ok(r.status === 409, 'لا رفع صورة لمقطع خارجي');
+  ok((await (await fetch(`${base}/api/admin/stats`, { headers: { Authorization: `Bearer ${tok}` } })).json()).data.videos === 1, 'الإحصاءات تشمل المكتبة الخارجية');
+  await srv.close();
+  // مدير المشاركة
+  const share = new shareLib.Share({ dataDir: path.join(tmp, 'share-mgr'), createServer: (o) => new LiwaTubeServer({ ...o, dataDir: path.join(tmp, 'share-mgr', 'share'), external: ext }) });
+  const st0 = share.status();
+  ok(st0.running === false && st0.tunnel.running === false, 'حالة المشاركة الابتدائية');
+  const st1 = await share.start({ port: 0, password: 'abcd' });
+  ok(st1.running && st1.port > 0 && st1.lan.every((u) => u.endsWith(`:${st1.port}`)), 'تشغيل خادم المشاركة على منفذ');
+  ok((await (await fetch(`http://127.0.0.1:${st1.port}/api/site`)).json()).data.hasAdmin === true, 'كلمة مرور المشرف مضبوطة في الخادم المضمَّن');
+  const qr = await share.qr(`http://127.0.0.1:${st1.port}`);
+  ok(qr.startsWith('data:image/png;base64,'), 'توليد QR');
+  const st2 = await share.stop();
+  ok(st2.running === false, 'إيقاف المشاركة');
+}
 function PNG_1PX_JPEG() { return Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(200, 1), Buffer.from([0xff, 0xd9])]); }
 
 await fsp.rm(tmp, { recursive: true, force: true });
