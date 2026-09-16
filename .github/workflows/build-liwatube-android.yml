@@ -14,6 +14,14 @@ on:
   push:
     tags:
       - "tube-android-v*"
+    branches:
+      - "claude/**"
+    paths:
+      - "liwatube/app/**"
+      - "liwatube/web/**"
+      - "liwatube/renderer/**"
+      - "liwatube/electron/lib/recommend.js"
+      - ".github/workflows/build-liwatube-android.yml"
 
 permissions:
   contents: write
@@ -38,6 +46,14 @@ jobs:
           java-version: 17
 
       - uses: android-actions/setup-android@v3
+
+      - name: تحديد وسم الإصدار
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then TAG="${{ github.event.inputs.tag }}";
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then TAG="${{ github.ref_name }}";
+          else TAG="tube-android-v$(node -p "require('./package.json').version")"; fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"; echo "الوسم: $TAG"
 
       - name: تثبيت الاعتماديات
         run: npm install --no-audit --no-fund
@@ -96,8 +112,9 @@ jobs:
       - name: نشر الإصدار
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
-          name: LiwaTube للأندرويد ${{ github.event.inputs.tag || github.ref_name }}
+          tag_name: ${{ steps.tag.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: LiwaTube للأندرويد ${{ steps.tag.outputs.tag }}
           files: liwatube/app/LiwaTube.apk
           body: |
             ## LiwaTube للهاتف والتلفاز — APK واحد للاثنين
