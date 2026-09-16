@@ -53,6 +53,23 @@ docker compose up -d      # عدّل LIWATUBE_ADMIN_PASSWORD في docker-compose
 كل ما ترفعه يظهر **فورًا** لكل من يفتح الموقع أو التطبيق. الزوار لا يحتاجون حسابًا:
 المشاهدات والإعجابات والتعليقات تُحسب لكل جهاز، وسجلهم و«شاهد لاحقًا» وقوائمهم تبقى على أجهزتهم.
 
+### أسهل طريقة ليعمل عند الآخرين (مُوصى بها): Railway
+
+اخترتها لأنها الوحيدة التي تجمع: نشر من GitHub بلا أوامر، **تخزين دائم للمقاطع**، رابط https ثابت،
+وتكلفة ~5$ شهريًا تشمل التخزين الأول. الخطوات كلها في المتصفح:
+
+1. افتح [railway.com](https://railway.com) وسجّل بحساب GitHub ← **New Project ← Deploy from GitHub repo** ← اختر `almarar88/liwamusic`.
+   سيكتشف `Dockerfile` في الجذر ويبني الخادم تلقائيًا.
+2. في الخدمة: **Settings ← Volumes ← Add Volume** ومسار التركيب `/data` (هنا تُحفظ المقاطع، ولا تضيع عند التحديث).
+3. **Settings ← Networking ← Generate Domain** ← يظهر رابط مثل `https://liwatube-production.up.railway.app`.
+4. (اختياري) **Variables**: `LIWATUBE_ADMIN_PASSWORD` = كلمة مرورك. وإلا تعيّنها من الموقع عند أول «دخول المشرف».
+
+افتح الرابط ← دخول المشرف ← ارفع. انتهى. **ثم** ابنِ الـ APK بهذا الرابط (انظر أدناه) فيفتح عند الآخرين مباشرة بلا أي إعداد.
+
+بدائل بنفس الملفات: **Render** (زر Blueprint من `render.yaml`، القرص الدائم يتطلب خطة Starter)،
+أو أي VPS/NAS بـ Docker: `docker run -d -p 8787:8787 -v liwatube:/data ghcr.io/almarar88/liwatube:latest`
+(الصورة تُنشر بوسم `tube-server-v*`).
+
 ### كيف يصل الآخرون إليه؟
 
 | الحالة | ما تفعله |
@@ -74,8 +91,12 @@ docker compose up -d      # عدّل LIWATUBE_ADMIN_PASSWORD في docker-compose
   OK للتشغيل، Back للرجوع، مفاتيح التشغيل/الإيقاف والتقديم. خطوط أكبر وإطار تركيز واضح.
 - **وضع التلفاز** يُكتشف تلقائيًا ويمكن فرضه من الإعدادات.
 
-بناء الـ APK: ادفع وسمًا `tube-android-v1.0.0` أو شغّل سير العمل «بناء LiwaTube للأندرويد» يدويًا،
-فيُنشر `LiwaTube.apk` في Releases. محليًا:
+- **الهواتف القابلة للطي (Fold/Flip)** وتقسيم الشاشة: التخطيط يعيد ترتيب نفسه عند الطي/الفرد بلا إعادة تحميل.
+
+بناء الـ APK: شغّل سير العمل «بناء LiwaTube للأندرويد» من تبويب Actions (أو ادفع وسمًا `tube-android-v1.0.0`).
+**ضع رابط خادمك في حقل `server_url`** فيُضمَّن في التطبيق ويفتح عند الآخرين مباشرة بلا أي إدخال.
+(يمكن بدلًا من ذلك ضبط متغير المستودع `LIWATUBE_SERVER` مرة واحدة من Settings ← Variables.)
+يُنشر `LiwaTube.apk` في Releases؛ أرسل رابطه لمن تريد. محليًا:
 
 ```bash
 cd liwatube/app && npm install && npm run build:www && npx cap add android && npx cap sync android

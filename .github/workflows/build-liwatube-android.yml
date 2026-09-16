@@ -7,6 +7,10 @@ on:
         description: "وسم الإصدار الذي سيُنشر (مثال tube-android-v1.0.0)"
         required: true
         default: "tube-android-v1.0.0"
+      server_url:
+        description: "اختياري: رابط خادمك (مثل https://liwatube.up.railway.app) ليُضمَّن في التطبيق فلا يُطلب من المشاهدين"
+        required: false
+        default: ""
   push:
     tags:
       - "tube-android-v*"
@@ -40,6 +44,8 @@ jobs:
 
       - name: تجميع واجهة الويب
         run: npm run build:www
+        env:
+          LIWATUBE_SERVER: ${{ github.event.inputs.server_url || vars.LIWATUBE_SERVER || '' }}
 
       - name: فحص التجميع
         run: npm test
@@ -99,8 +105,9 @@ jobs:
             نزّل `LiwaTube.apk` وثبّته على هاتفك أو على تلفاز أندرويد (Android TV / Google TV /
             أي شاشة تدعم تثبيت APK). سيطلب السماح بالتثبيت من مصدر غير معروف — هذا طبيعي.
 
-            **عند أول تشغيل** أدخل عنوان خادم LiwaTube الخاص بك (مثل `http://192.168.1.10:8787`
-            داخل الشبكة، أو رابط خادمك على الإنترنت). كل ما يرفعه المشرف يظهر فورًا للجميع.
+            **عند أول تشغيل** أدخل عنوان خادم LiwaTube (مثل `http://192.168.1.10:8787` داخل الشبكة،
+            أو رابط خادمك على الإنترنت) — إلا إذا بُني التطبيق برابط مضمَّن فيفتح مباشرة.
+            كل ما يرفعه المشرف يظهر فورًا للجميع. يدعم الهواتف القابلة للطي وتقسيم الشاشة.
 
             على التلفاز: التنقّل بأسهم الريموت، OK للتشغيل، Back للرجوع.
 

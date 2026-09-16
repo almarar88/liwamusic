@@ -8,7 +8,7 @@
     get(k, def) { try { const v = localStorage.getItem(k); return v == null ? def : JSON.parse(v); } catch { return def; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* ممتلئ */ } },
   };
-  let API = STANDALONE ? (store.get('lt.server', '') || '') : '';
+  let API = STANDALONE ? (store.get('lt.server', '') || window.LT_DEFAULT_SERVER || '') : '';
   API = API.replace(/\/+$/, '');
   let token = store.get('lt.token', '');
   const device = store.get('lt.device', '') || (() => { const d = Array.from(crypto.getRandomValues(new Uint8Array(12))).map((b) => b.toString(16).padStart(2, '0')).join(''); store.set('lt.device', d); return d; })();

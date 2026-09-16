@@ -26,7 +26,9 @@ if (!m.includes('LEANBACK_LAUNCHER')) {
   m = m.replace('<category android:name="android.intent.category.LAUNCHER" />', '<category android:name="android.intent.category.LAUNCHER" />\n                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />');
 }
 // شاشة أفقية ثابتة على التلفاز لا تضر الهاتف (يبقى المستشعر يعمل حيث يوجد)
-if (!m.includes('android:screenOrientation')) m = m.replace(/<activity([^>]*?)android:name="\.MainActivity"/, '<activity$1android:name=".MainActivity"\n            android:screenOrientation="fullUser"');
+if (!m.includes('android:resizeableActivity')) m = m.replace(/<activity([^>]*?)android:name="\.MainActivity"/, '<activity$1android:name=".MainActivity"\n            android:resizeableActivity="true"\n            android:supportsPictureInPicture="true"');
+// الأجهزة القابلة للطي: إبقاء WebView حيًّا عند تغيّر الحجم/الطي/التدوير بدل إعادة التحميل
+if (!m.includes('smallestScreenSize')) m = m.replace(/android:configChanges="([^"]*)"/, (all, v) => `android:configChanges="${[...new Set((v + '|orientation|screenSize|smallestScreenSize|screenLayout|uiMode|density').split('|').filter(Boolean))].join('|')}"`);
 write(manifestPath, m);
 
 // 2) اسم التطبيق

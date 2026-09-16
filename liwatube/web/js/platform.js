@@ -18,6 +18,9 @@
     nav.hidden = false;
   }
   window.addEventListener('hashchange', () => setTimeout(renderBottomNav, 50));
+  // الطي/الفرد وتقسيم الشاشة: إعادة تطبيق التخطيط عند تغيّر الحجم
+  let rs = null;
+  window.addEventListener('resize', () => { clearTimeout(rs); rs = setTimeout(() => { renderBottomNav(); if (LT.state.route && LT.state.route.view === 'shorts') LT.router.refresh(); }, 250); });
   document.addEventListener('DOMContentLoaded', () => setTimeout(renderBottomNav, 800));
   const origRenderSidebar = null; // يُستدعى من app عبر LT.renderSidebar إن وُجد
   LT.onSidebar = renderBottomNav;

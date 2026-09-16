@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: liwatube
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    healthCheckPath: /api/site
+    disk:
+      name: liwatube-data
+      mountPath: /data
+      sizeGB: 20
+    envVars:
+      - key: LIWATUBE_DATA
+        value: /data
+      - key: LIWATUBE_ADMIN_PASSWORD
+        sync: false
