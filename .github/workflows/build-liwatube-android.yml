@@ -46,6 +46,8 @@ jobs:
           java-version: 17
 
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
 
       - name: تحديد وسم الإصدار
         id: tag
