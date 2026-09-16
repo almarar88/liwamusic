@@ -2,6 +2,7 @@ appId: com.liwamusic.liwatube
 productName: LiwaTube
 copyright: © LiwaMusic — تم إنشاؤه عن طريق LiwaMusic
 directories:
+  app: .            # مجلد app/ هنا هو تطبيق الهاتف (Capacitor) وليس هيكل «حزمتين» لـ electron-builder
   output: release
   buildResources: build
 files:
@@ -14,6 +15,9 @@ files:
   - "!**/*.map"
   - "!**/test/**"
   - "!**/*.md"
+  - "!app/**"
+  - "!server-data/**"
+  - "!release/**"
 win:
   icon: build/icon.png
   target:
