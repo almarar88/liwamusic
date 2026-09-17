@@ -19,7 +19,7 @@
 يشاهد الفيديو ويكتب العنوان والوصف والفصول ويجيب عن أسئلتك أثناء المشاهدة. كل شيء محلي، وبقفل PIN اختياري.
 وفيه صفحة **«مشاركة»**: ضغطة واحدة تجعل كمبيوترك خادمًا يشاهد منه أهلك وأصدقاؤك مكتبتك من الهاتف أو التلفاز (رمز QR،
 ورابط إنترنت مجاني بلا حساب)، مع **APK واحد للهاتف وتلفاز أندرويد**، وخادم مستقل اختياري للرابط الدائم.
-**[⬇ تحميل LiwaTube.apk](https://github.com/almarar88/liwamusic/releases/download/tube-android-v1.1.0/LiwaTube.apk)** · البناء: `build-liwatube.yml` (ويندوز، وسوم `tube-v*`) و `build-liwatube-android.yml` (APK، وسوم `tube-android-v*`).
+**[⬇ تحميل LiwaTube.apk](https://github.com/almarar88/liwamusic/releases/download/tube-android-v1.2.0/LiwaTube.apk)** · البناء: `build-liwatube.yml` (ويندوز، وسوم `tube-v*`) و `build-liwatube-android.yml` (APK، وسوم `tube-android-v*`).
 
 ## ⬇️ التحميل
 
