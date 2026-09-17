@@ -413,6 +413,84 @@ section('جلسة المشرف عبر إعادة التشغيل');
   ok((await call(srv, 'POST', '/api/login', { password: PW })).status === 401, 'الدخول بالقديمة مرفوض');
   await srv.close();
 }
+// ————————————————————————————————— التخزين الدائم على R2
+section('التخزين الدائم (R2)');
+{
+  const { LiwaTubeServer } = require(path.join(root, 'server/server.js'));
+  const { R2 } = require(path.join(root, 'server/r2.js'));
+  const { createMockS3 } = await import(new URL('./mock-s3.mjs', import.meta.url).href);
+  const mock = createMockS3();
+  const endpoint = await mock.listen();
+  const env = { R2_ENDPOINT: endpoint, R2_BUCKET: 'liwatube', R2_ACCESS_KEY_ID: 'key', R2_SECRET_ACCESS_KEY: 'secret' };
+
+  const r2 = new R2(env);
+  ok(r2.configured && r2.missing().length === 0, 'الإعداد مكتمل يُعدّ مضبوطًا');
+  ok(await r2.selfTest(), 'فحص الكتابة والقراءة والحذف');
+  const signed = await r2.presign('videos/x.mp4', { method: 'GET', expires: 900 });
+  ok(signed.includes('X-Amz-Signature=') && signed.includes('X-Amz-Expires=900'), 'رابط موقّع للقراءة');
+  ok(await r2.ensureCors(['*']) && String(mock.cors).includes('<AllowedMethod>PUT</AllowedMethod>'), 'ضبط CORS على الحاوية');
+
+  const call = async (srv, method, url, body, tok) => {
+    const h = { 'X-Device': 'dev' };
+    if (tok) h.Authorization = `Bearer ${tok}`;
+    let b = body;
+    if (body !== undefined && !(body instanceof Uint8Array)) { b = JSON.stringify(body); h['Content-Type'] = 'application/json'; }
+    const res = await fetch(`http://127.0.0.1:${srv.port}${url}`, { method, headers: h, body: b, redirect: 'manual' });
+    let data = null; try { data = await res.clone().json(); } catch { /* ليس JSON */ }
+    return { status: res.status, data, location: res.headers.get('location') };
+  };
+
+  const dataDir = path.join(tmp, 'r2-a');
+  let srv = new LiwaTubeServer({ dataDir, port: 0, host: '127.0.0.1', log: () => {}, adminPassword: 'pw1234', storage: new R2(env) });
+  await srv.listen();
+  ok(srv.remote !== null, 'الخادم يستخدم R2');
+  ok((await call(srv, 'GET', '/api/site')).data.data.storage === 'r2', 'معلومات الموقع تعلن التخزين r2');
+  const tok = (await call(srv, 'POST', '/api/login', { password: 'pw1234' })).data.data.token;
+
+  // رفع مباشر من المتصفح إلى R2
+  const init = await call(srv, 'POST', '/api/admin/upload/init', { name: 'My Trip.2024.mp4', channel: 'رحلاتي', size: 1234 }, tok);
+  ok(init.status === 200 && init.data.data.url.includes('X-Amz-Signature='), 'الخادم يوقّع رابط رفع مباشر');
+  const putUrl = init.data.data.url; const vid = init.data.data.id;
+  ok((await call(srv, 'POST', '/api/admin/upload/finish', { id: vid }, tok)).status === 409, 'لا يُسجَّل المقطع قبل اكتمال الرفع');
+  const put = await fetch(putUrl, { method: 'PUT', body: Buffer.alloc(4096, 9), headers: { 'Content-Type': 'video/mp4' } });
+  ok(put.ok, 'المتصفح يرفع إلى R2 مباشرة بالرابط الموقّع');
+  const fin = await call(srv, 'POST', '/api/admin/upload/finish', { id: vid }, tok);
+  ok(fin.status === 200 && fin.data.data.title === 'My Trip 2024' && fin.data.data.year === 2024 && fin.data.data.size === 4096, 'تسجيل المقطع بعد الرفع', JSON.stringify(fin.data));
+  ok(mock.objects.has(`videos/${vid}.mp4`), 'الملف موجود في التخزين');
+
+  // الصورة المصغّرة والترجمة في R2
+  ok((await call(srv, 'POST', `/api/admin/thumb/${vid}?at=2`, PNG_1PX_JPEG(), tok)).status === 200 && mock.objects.has(`thumbs/${vid}.jpg`), 'الصورة المصغّرة في R2');
+  ok((await call(srv, 'POST', `/api/admin/sub/${vid}?lang=ar`, Buffer.from('1\n00:00:01,000 --> 00:00:02,000\nمرحبا\n'), tok)).status === 200 && mock.objects.has(`subs/${vid}.0.vtt`), 'الترجمة في R2');
+
+  // المشاهدة: إعادة توجيه إلى رابط موقّع من R2 لا مرور بالخادم
+  const play = await call(srv, 'GET', `/api/video/${vid}`);
+  ok(play.status === 302 && play.location.includes('X-Amz-Signature='), 'تشغيل المقطع عبر رابط R2 موقّع');
+  const direct = await fetch(play.location);
+  ok(direct.ok && (await direct.arrayBuffer()).byteLength === 4096, 'المشاهد يجلب الملف من R2 مباشرة');
+  ok((await call(srv, 'GET', `/api/thumb/${vid}.jpg`)).status === 302, 'الصورة المصغّرة عبر R2');
+  await srv.close();
+
+  // ★ الاختبار الأهم: خادم جديد بمجلد بيانات فارغ — المقاطع يجب أن تبقى
+  srv = new LiwaTubeServer({ dataDir: path.join(tmp, 'r2-b'), port: 0, host: '127.0.0.1', log: () => {}, adminPassword: 'pw1234', storage: new R2(env) });
+  await srv.listen();
+  const after = (await call(srv, 'GET', '/api/library')).data.data;
+  ok(Object.keys(after.videos).length === 1 && after.videos[vid].title === 'My Trip 2024', 'المقاطع باقية بعد إعادة نشر الخادم بقرص فارغ');
+  ok((await call(srv, 'GET', `/api/video/${vid}`)).status === 302, 'ولا تزال قابلة للتشغيل');
+  ok(after.channels[0].name === 'رحلاتي', 'القنوات والبيانات الوصفية باقية');
+
+  // الحذف يمسح من R2 فعليًا
+  const tok2 = (await call(srv, 'POST', '/api/login', { password: 'pw1234' })).data.data.token;
+  ok((await call(srv, 'DELETE', `/api/admin/video/${vid}`, undefined, tok2)).status === 200, 'حذف المقطع');
+  ok(!mock.objects.has(`videos/${vid}.mp4`) && !mock.objects.has(`thumbs/${vid}.jpg`), 'الحذف يزيل الملفات من R2');
+  await srv.close();
+
+  // تعذّر الوصول إلى R2 → يعود إلى التخزين المحلي بدل أن يتعطّل
+  await mock.close();
+  const fallback = new LiwaTubeServer({ dataDir: path.join(tmp, 'r2-c'), port: 0, host: '127.0.0.1', log: () => {}, storage: new R2(env) });
+  await fallback.listen();
+  ok(fallback.remote === null, 'عند فشل R2 يعمل الخادم محليًا بدل التوقف');
+  await fallback.close();
+}
 function PNG_1PX_JPEG() { return Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(200, 1), Buffer.from([0xff, 0xd9])]); }
 
 await fsp.rm(tmp, { recursive: true, force: true });

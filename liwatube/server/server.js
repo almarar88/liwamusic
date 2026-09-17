@@ -19,6 +19,7 @@ const subtitles = require('../electron/lib/subtitles');
 const lock = require('../electron/lib/lock');
 const { parseRange, MIME } = require('../electron/lib/filestream');
 const { AI, MODELS, DEFAULT_MODEL } = require('../electron/lib/ai');
+const { R2 } = require('./r2');
 
 const ROOT = path.resolve(__dirname, '..');
 const PKG = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
@@ -29,8 +30,11 @@ const MAX_JSON = 40 * 1024 * 1024;
 // ————————————————————————————————— قاعدة البيانات (JSON)
 
 class DB {
-  constructor(dataDir) {
+  constructor(dataDir, remote = null) {
     this.dir = dataDir;
+    this.remote = remote;       // R2 اختياري: قاعدة البيانات تُحفظ هناك فتبقى بعد إعادة النشر
+    this.remoteKey = 'db.json';
+    this.remoteTimer = null;
     this.file = path.join(dataDir, 'db.json');
     for (const d of ['videos', 'thumbs', 'subs', 'tmp']) fs.mkdirSync(path.join(dataDir, d), { recursive: true });
     let data = null;
@@ -52,6 +56,28 @@ class DB {
   save() {
     clearTimeout(this.timer);
     this.timer = setTimeout(() => this.flush().catch(() => {}), 200);
+    if (this.remote) {
+      clearTimeout(this.remoteTimer);
+      this.remoteTimer = setTimeout(() => this.pushRemote().catch(() => {}), 1500);
+    }
+  }
+
+  /** يحمّل قاعدة البيانات من التخزين البعيد إن وُجدت (تُستدعى مرة عند الإقلاع). */
+  async pullRemote() {
+    if (!this.remote) return false;
+    const data = await this.remote.getJSON(this.remoteKey).catch(() => null);
+    if (!data || typeof data !== 'object') return false;
+    const secret = this.data.secret;
+    this.data = Object.assign(this.data, data);
+    if (!this.data.secret) this.data.secret = secret;
+    return true;
+  }
+
+  async pushRemote() {
+    clearTimeout(this.remoteTimer); this.remoteTimer = null;
+    if (!this.remote) return false;
+    await this.remote.putJSON(this.remoteKey, this.data);
+    return true;
   }
 
   async flush() {
@@ -64,6 +90,9 @@ class DB {
   videoPath(v) { return path.join(this.dir, 'videos', `${v.id}.${v.ext}`); }
   thumbPath(v) { return path.join(this.dir, 'thumbs', `${v.id}.jpg`); }
   subPath(v, i) { return path.join(this.dir, 'subs', `${v.id}.${i}.vtt`); }
+  static videoKey(v) { return `videos/${v.id}.${v.ext}`; }
+  static thumbKey(v) { return `thumbs/${v.id}.jpg`; }
+  static subKey(v, i) { return `subs/${v.id}.${i}.vtt`; }
 }
 
 // ————————————————————————————————— أدوات
@@ -123,11 +152,13 @@ class LiwaTubeServer {
    *    { videos: () => ({ id: { id, path, title, channel, channelId, description, tags, duration, width, height, thumbPath, addedAt, size, ext, ai } }),
    *      update: async (id, patch) => void, subtitlesFor: async (id) => [{ path, lang, label }] }
    */
-  constructor({ dataDir, port = 8787, host = '0.0.0.0', adminPassword = null, log = console.log, external = null } = {}) {
+  constructor({ dataDir, port = 8787, host = '0.0.0.0', adminPassword = null, log = console.log, external = null, storage } = {}) {
     this.dataDir = path.resolve(dataDir || process.env.LIWATUBE_DATA || path.join(ROOT, 'server-data'));
     this.port = port; this.host = host; this.log = log; this.external = external;
     this.seedPassword = adminPassword || process.env.LIWATUBE_ADMIN_PASSWORD || null;
-    this.db = new DB(this.dataDir);
+    this.r2 = storage !== undefined ? storage : new R2();
+    this.remote = this.r2 && this.r2.configured ? this.r2 : null;
+    this.db = new DB(this.dataDir, this.remote);
     if (!this.db.data.extMeta) this.db.data.extMeta = {}; // id -> { views, hidden } للمكتبة الخارجية
     if (adminPassword && (!this.db.data.admin || !lock.verifyPin(adminPassword, this.db.data.admin))) {
       this.db.data.admin = lock.hashPin(adminPassword);
@@ -135,6 +166,7 @@ class LiwaTubeServer {
     }
     this.ai = new AI({ dir: this.dataDir, safeStorage: null });
     this.loginAttempts = new Map();
+    this.pendingUploads = new Map(); // رفع مباشر إلى R2 بانتظار التأكيد
     this.server = http.createServer((req, res) => this.handle(req, res).catch((e) => {
       if (!res.headersSent) err(res, e.message === 'PAYLOAD_TOO_LARGE' ? 413 : e.message === 'BAD_JSON' ? 400 : 500, e.message || 'ERROR', e.code);
       else res.end();
@@ -150,10 +182,38 @@ class LiwaTubeServer {
     return true;
   }
 
-  listen() {
-    return new Promise((resolve) => this.server.listen(this.port, this.host, () => { this.port = this.server.address().port; this.log(`LiwaTube server: http://localhost:${this.port}  (data: ${this.dataDir})`); resolve(this); }));
+  /** تهيئة التخزين البعيد قبل الاستماع: تحميل البيانات وضبط CORS والتحقق من الصلاحيات. */
+  async initStorage() {
+    if (!this.remote) return { kind: 'local' };
+    try {
+      await this.remote.selfTest();
+      const loaded = await this.db.pullRemote();
+      // كلمة مرور البيئة تُطبَّق بعد تحميل البيانات البعيدة
+      if (this.seedPassword && (!this.db.data.admin || !lock.verifyPin(this.seedPassword, this.db.data.admin))) {
+        this.db.data.admin = lock.hashPin(this.seedPassword);
+        this.db.save();
+      }
+      if (!this.db.data.extMeta) this.db.data.extMeta = {};
+      this.remote.ensureCors(['*']).catch((e) => this.log(`R2 CORS: ${e.message}`));
+      this.log(`R2 جاهز (${this.remote.bucket}) — ${loaded ? 'حُمِّلت البيانات' : 'حاوية جديدة'}`);
+      return { kind: 'r2', loaded };
+    } catch (e) {
+      this.log(`تعذّر استخدام R2: ${e.message} — سيُستخدم التخزين المحلي`);
+      this.remote = null;
+      this.db.remote = null;
+      return { kind: 'local', error: e.message };
+    }
   }
-  async close() { await this.db.flush(); await new Promise((r) => this.server.close(r)); }
+
+  async listen() {
+    await this.initStorage();
+    return new Promise((resolve) => this.server.listen(this.port, this.host, () => { this.port = this.server.address().port; this.log(`LiwaTube server: http://localhost:${this.port}  (data: ${this.remote ? `R2:${this.remote.bucket}` : this.dataDir})`); resolve(this); }));
+  }
+  async close() {
+    await this.db.flush();
+    if (this.remote) await this.db.pushRemote().catch(() => {});
+    await new Promise((r) => this.server.close(r));
+  }
 
   // ---------- المصادقة
   /**
@@ -238,7 +298,7 @@ class LiwaTubeServer {
   }
   siteInfo() {
     const s = this.db.data.settings;
-    return { name: s.siteName, version: PKG.version, creator: CREATOR, hasAdmin: Boolean(this.db.data.admin), aiEnabled: s.aiEnabled && (this.ai.hasKey()), aiPublic: s.aiPublic, aiModel: s.aiModel, allowComments: s.allowComments !== false, welcome: s.welcome || '', videos: Object.values(this.allVideos()).filter((v) => !v.hidden).length };
+    return { name: s.siteName, version: PKG.version, creator: CREATOR, hasAdmin: Boolean(this.db.data.admin), aiEnabled: s.aiEnabled && (this.ai.hasKey()), aiPublic: s.aiPublic, aiModel: s.aiModel, allowComments: s.allowComments !== false, welcome: s.welcome || '', storage: this.remote ? 'r2' : 'local', videos: Object.values(this.allVideos()).filter((v) => !v.hidden).length };
   }
 
   // ---------- التوجيه
@@ -283,12 +343,14 @@ class LiwaTubeServer {
     if (a === 'video' && b) {
       const v = this.getVideo(b);
       if (!v || (v.hidden && !admin)) return err(res, 404, 'NOT_FOUND');
+      if (this.remote && !v.external) return this.redirectSigned(res, DB.videoKey(v));
       return streamFile(req, res, this.filePath(v));
     }
     if (a === 'thumb' && b) {
       const id = b.replace(/\.jpg$/, '');
       const v = this.getVideo(id);
       if (!v || !v.thumb) return err(res, 404, 'NOT_FOUND');
+      if (this.remote && !v.external) return this.redirectSigned(res, DB.thumbKey(v), 3600);
       return streamFile(req, res, this.thumbFile(v), 'image/jpeg');
     }
     if (a === 'sub' && b && c != null) {
@@ -303,6 +365,7 @@ class LiwaTubeServer {
         return res.end(vtt);
       }
       if (!(v.subs || [])[Number(c)]) return err(res, 404, 'NOT_FOUND');
+      if (this.remote) return this.redirectSigned(res, DB.subKey(v, Number(c)), 3600);
       return streamFile(req, res, this.db.subPath(v, Number(c)), 'text/vtt; charset=utf-8');
     }
     if (a === 'subs' && b && m === 'GET') {
@@ -430,6 +493,31 @@ class LiwaTubeServer {
         let size = 0; for (const v of vids) size += v.size || 0;
         return ok(res, { videos: vids.length, hidden: vids.filter((v) => v.hidden).length, views: vids.reduce((x, v) => x + (v.views || 0), 0), likes: Object.values(this.db.data.likes).reduce((x, l) => x + Object.values(l).filter((z) => z > 0).length, 0), comments: Object.values(this.db.data.comments).reduce((x, l) => x + l.length, 0), size, duration: vids.reduce((x, v) => x + (v.duration || 0), 0), analyzed: vids.filter((v) => v.ai).length, dataDir: this.dataDir });
       }
+      // رفع مباشر من المتصفح إلى R2: الخادم يوقّع الرابط فقط، فلا يمرّ الملف به إطلاقًا
+      if (b === 'upload' && c === 'init' && m === 'POST') {
+        if (!this.remote) return err(res, 409, 'DIRECT_UPLOAD_UNAVAILABLE');
+        const { name, channel, title, size } = await readJSON(req);
+        const ext = path.extname(String(name || '')).toLowerCase();
+        if (!VIDEO_EXT.has(ext)) return err(res, 415, 'UNSUPPORTED_TYPE');
+        const rec = this.newRecord({ name, channel, title, ext, size: Number(size) || 0 });
+        this.pendingUploads.set(rec.id, { rec, at: Date.now() });
+        for (const [k, val] of this.pendingUploads) if (Date.now() - val.at > 24 * 3600000) this.pendingUploads.delete(k);
+        const key = DB.videoKey(rec);
+        return ok(res, { id: rec.id, key, url: await this.remote.presign(key, { method: 'PUT', expires: 21600 }) });
+      }
+      if (b === 'upload' && c === 'finish' && m === 'POST') {
+        const { id } = await readJSON(req);
+        const pend = this.pendingUploads.get(String(id || ''));
+        if (!pend) return err(res, 404, 'UPLOAD_NOT_FOUND');
+        const info = await this.remote.head(DB.videoKey(pend.rec)).catch(() => null);
+        if (!info || !info.size) return err(res, 409, 'UPLOAD_INCOMPLETE');
+        pend.rec.size = info.size;
+        this.db.data.videos[pend.rec.id] = pend.rec;
+        this.pendingUploads.delete(pend.rec.id);
+        this.db.save();
+        this.log(`+ upload ${pend.rec.originalName} (${Math.round(info.size / 1e6)} MB) → ${pend.rec.channel}`);
+        return ok(res, this.publicVideo(pend.rec, req));
+      }
       if (b === 'upload' && (m === 'POST' || m === 'PUT')) return this.upload(req, res, url);
       if (b === 'video' && c) {
         const v = this.getVideo(c);
@@ -465,7 +553,7 @@ class LiwaTubeServer {
         }
         if (m === 'DELETE') {
           delete this.db.data.videos[c]; delete this.db.data.comments[c]; delete this.db.data.likes[c]; delete this.db.data.views[c];
-          for (const f of [this.db.videoPath(v), this.db.thumbPath(v), ...(v.subs || []).map((_, i) => this.db.subPath(v, i))]) await fsp.unlink(f).catch(() => {});
+          await this.removeObjects(v);
           this.db.save();
           return ok(res);
         }
@@ -475,7 +563,7 @@ class LiwaTubeServer {
         if (!v) return err(res, this.getVideo(c) ? 409 : 404, this.getVideo(c) ? 'EXTERNAL_VIDEO' : 'NOT_FOUND');
         const buf = await readBody(req, 8 * 1024 * 1024);
         if (buf.length < 100) return err(res, 400, 'EMPTY');
-        await fsp.writeFile(this.db.thumbPath(v), buf);
+        await this.putAsset(DB.thumbKey(v), this.db.thumbPath(v), buf, 'image/jpeg');
         v.thumb = Date.now();
         const at = Number(url.searchParams.get('at'));
         if (Number.isFinite(at)) v.thumbAt = at;
@@ -493,7 +581,7 @@ class LiwaTubeServer {
         const i = v.subs.length;
         v.subs.push({ lang, label: lang.toUpperCase() });
         // إعادة ترقيم الملفات لتطابق الفهارس
-        await fsp.writeFile(this.db.subPath(v, i), vtt, 'utf8');
+        await this.putAsset(DB.subKey(v, i), this.db.subPath(v, i), Buffer.from(vtt, 'utf8'), 'text/vtt; charset=utf-8');
         this.db.save();
         return ok(res, this.publicVideo(v, req));
       }
@@ -526,9 +614,47 @@ class LiwaTubeServer {
     return err(res, 404, 'NOT_FOUND');
   }
 
+  /** إعادة توجيه مؤقتة إلى رابط R2 موقّع. */
+  async redirectSigned(res, key, expires = 21600) {
+    try {
+      const url = await this.remote.presign(key, { method: 'GET', expires });
+      res.writeHead(302, { Location: url, 'Cache-Control': 'private, max-age=60', 'Access-Control-Allow-Origin': '*' });
+      return res.end();
+    } catch (e) { return err(res, 502, `STORAGE_${e.message}`); }
+  }
+  /** يحفظ ملفًا صغيرًا (صورة/ترجمة) في التخزين المناسب. */
+  async putAsset(key, filePath, buf, contentType) {
+    if (this.remote) return this.remote.put(key, buf, contentType);
+    await fsp.writeFile(filePath, buf);
+    return true;
+  }
+  async removeObjects(v) {
+    if (this.remote && !v.external) {
+      const keys = [DB.videoKey(v), DB.thumbKey(v), ...(v.subs || []).map((_, i) => DB.subKey(v, i))];
+      for (const k of keys) await this.remote.del(k).catch(() => {});
+      return;
+    }
+    for (const f of [this.db.videoPath(v), this.db.thumbPath(v), ...(v.subs || []).map((_, i) => this.db.subPath(v, i))]) {
+      await fsp.unlink(f).catch(() => {});
+    }
+  }
+
   safeUser(u) {
     u = u && typeof u === 'object' ? u : {};
     return { history: (u.history || []).slice(0, 60), likes: u.likes || {}, subscriptions: u.subscriptions || {}, playCount: u.playCount || {}, ai: {}, overrides: {}, hidden: {}, notInterested: u.notInterested || {}, progress: u.progress || {} };
+  }
+
+  /** يبني سجل مقطع جديد من اسم الملف والقناة. */
+  newRecord({ name, channel, title, ext, size = 0 }) {
+    const ch = String(channel || '').trim().slice(0, 80) || this.db.data.settings.siteName;
+    return {
+      id: newId(), ext: ext.slice(1), originalName: path.basename(String(name || `video${ext}`)), size,
+      addedAt: Date.now(), updatedAt: Date.now(),
+      title: String(title || '').trim().slice(0, 200) || scanner.titleFromFilename(String(name || 'video')),
+      year: scanner.yearFromFilename(String(name || '')),
+      channel: ch, channelId: scanner.channelId(ch),
+      description: '', tags: [], duration: 0, width: 0, height: 0, thumb: null, probed: false, views: 0, hidden: false, subs: [],
+    };
   }
 
   /** رفع مقطع: الجسم الخام للملف، والاسم/القناة في الترويسات أو الاستعلام. */
@@ -545,14 +671,14 @@ class LiwaTubeServer {
       await pipeline(req, counter, fs.createWriteStream(tmp));
     } catch (e) { await fsp.unlink(tmp).catch(() => {}); return err(res, 400, 'UPLOAD_FAILED'); }
     if (!size) { await fsp.unlink(tmp).catch(() => {}); return err(res, 400, 'EMPTY'); }
-    const rec = {
-      id, ext: ext.slice(1), originalName: path.basename(name), file: `${id}${ext}`, size, addedAt: Date.now(), updatedAt: Date.now(),
-      title: String(url.searchParams.get('title') || '').trim().slice(0, 200) || scanner.titleFromFilename(name),
-      year: scanner.yearFromFilename(name),
-      channel, channelId: scanner.channelId(channel),
-      description: '', tags: [], duration: 0, width: 0, height: 0, thumb: null, probed: false, views: 0, hidden: false, subs: [],
-    };
-    await fsp.rename(tmp, this.db.videoPath(rec));
+    const rec = this.newRecord({ name, channel, title: url.searchParams.get('title'), ext, size });
+    rec.id = id;
+    if (this.remote) {
+      await this.remote.put(DB.videoKey(rec), await fsp.readFile(tmp), 'application/octet-stream');
+      await fsp.unlink(tmp).catch(() => {});
+    } else {
+      await fsp.rename(tmp, this.db.videoPath(rec));
+    }
     this.db.data.videos[id] = rec;
     this.db.save();
     this.log(`+ upload ${rec.originalName} (${Math.round(size / 1e6)} MB) → ${channel}`);

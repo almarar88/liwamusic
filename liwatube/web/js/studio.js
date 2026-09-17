@@ -16,7 +16,9 @@
       aiEnabled: 'تفعيل الذكاء الاصطناعي', aiPublic: 'السماح للزوار باستخدام البحث الذكي والمحادثة (يستهلك رصيدك)', aiKey: 'مفتاح Anthropic API', aiModel: 'النموذج', saveKey: 'حفظ المفتاح', keySet: 'محفوظ', keyNone: 'غير مضبوط',
       changePw: 'تغيير كلمة المرور', currentPw: 'الحالية', newPw: 'الجديدة', save: 'حفظ', saved: 'تم الحفظ', wrongPw: 'كلمة المرور غير صحيحة', weakPw: 'كلمة المرور قصيرة (4 أحرف على الأقل)',
       viewer: 'إعدادات المشاهدة', nickname: 'اسمك في التعليقات', tvMode: 'وضع التلفاز (خطوط أكبر وتنقّل بالريموت)', auto: 'تلقائي', on: 'مفعّل', off: 'معطّل', server: 'عنوان الخادم', change: 'تغيير', lang: 'اللغة', theme: 'السمة', dark: 'داكن', light: 'فاتح', accent: 'اللون', autoplay: 'تشغيل تلقائي', hover: 'معاينة عند التمرير', captions: 'الترجمة تلقائيًا',
-      noVideos: 'لا مقاطع بعد — ارفع أول مقطع', serverInfo: 'الخادم', tabHint: 'كل ما ترفعه هنا يظهر فورًا لكل من يفتح الموقع أو التطبيق.', gen: 'إعادة توليد الصور المصغّرة الناقصة',
+      noVideos: 'لا مقاطع بعد — ارفع أول مقطع', serverInfo: 'الخادم', storage: 'التخزين',
+      storR2: 'دائم على Cloudflare R2 — المقاطع محفوظة خارج الخادم ولا تُحذف عند إعادة النشر',
+      storLocal: 'قرص الخادم — إن كانت الاستضافة بلا قرص دائم فستُمسح المقاطع عند كل إعادة تشغيل', tabHint: 'كل ما ترفعه هنا يظهر فورًا لكل من يفتح الموقع أو التطبيق.', gen: 'إعادة توليد الصور المصغّرة الناقصة',
     },
     en: {
       studio: 'Studio', dash: 'Overview', upload: 'Upload', videos: 'Videos', settings: 'Settings', login: 'Admin login', setup: 'Create admin password', password: 'Password', enter: 'Sign in', logout: 'Sign out',
@@ -30,7 +32,9 @@
       aiEnabled: 'Enable AI', aiPublic: 'Let viewers use smart search & chat (spends your credit)', aiKey: 'Anthropic API key', aiModel: 'Model', saveKey: 'Save key', keySet: 'Set', keyNone: 'Not set',
       changePw: 'Change password', currentPw: 'Current', newPw: 'New', save: 'Save', saved: 'Saved', wrongPw: 'Wrong password', weakPw: 'Password too short (min 4)',
       viewer: 'Viewer settings', nickname: 'Your name in comments', tvMode: 'TV mode (bigger text, remote navigation)', auto: 'Auto', on: 'On', off: 'Off', server: 'Server address', change: 'Change', lang: 'Language', theme: 'Theme', dark: 'Dark', light: 'Light', accent: 'Accent', autoplay: 'Autoplay', hover: 'Hover preview', captions: 'Captions by default',
-      noVideos: 'No videos yet — upload your first one', serverInfo: 'Server', tabHint: 'Everything you upload here shows up instantly for everyone who opens the site or the app.', gen: 'Regenerate missing thumbnails',
+      noVideos: 'No videos yet — upload your first one', serverInfo: 'Server', storage: 'Storage',
+      storR2: 'Permanent on Cloudflare R2 — files live outside the server and survive redeploys',
+      storLocal: 'Server disk — without a persistent disk, files are wiped on every restart', tabHint: 'Everything you upload here shows up instantly for everyone who opens the site or the app.', gen: 'Regenerate missing thumbnails',
     },
   };
   const t = (k) => (D[LT.lang] || D.ar)[k] || D.ar[k] || k;
@@ -79,8 +83,11 @@
     const st = await window.liwa.studio.stats();
     const stat = (n, l) => h('div.stat', h('b', String(n)), h('span', l));
     const recent = Object.values(S().lib.videos).sort((a, b) => b.addedAt - a.addedAt).slice(0, 8).map((v) => LT.views.info(v.id)).filter(Boolean);
+    const r2 = (S().site || {}).storage === 'r2';
     return h('div',
       h('div.ai-note', LT.icon('ai'), h('span', t('tabHint'))),
+      h('div.ai-note', { style: r2 ? {} : { background: 'rgba(240,170,55,.15)', borderColor: 'rgba(240,170,55,.45)' } },
+        h('span', r2 ? '🗄️' : '⚠️'), h('span.grow', h('b', `${t('storage')}: `), r2 ? t('storR2') : t('storLocal'))),
       h('div.stats-grid', stat(st.videos, t('videos')), stat(st.views, t('views')), stat(st.likes, t('likes')), stat(st.comments, t('comments')), stat(fmtBytes(st.size), t('size')), stat(LT.fmtHours(st.duration), t('hours')), stat(st.analyzed, t('analyzed'))),
       h('div.row', { style: { marginBottom: '16px' } }, h('button.btn.primary', { onclick: () => LT.router.go('#/studio/upload') }, LT.icon('plus'), t('upload')), h('span.muted.xs', `${t('serverInfo')}: ${LT.api.base() || location.origin}`)),
       recent.length ? h('div.grid.dense', recent.map((v) => LT.views.card(v, { showChannel: false }))) : h('div.empty', h('p', t('noVideos'))));

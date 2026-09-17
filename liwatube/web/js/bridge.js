@@ -324,19 +324,48 @@
       remove: async (id) => { await req('DELETE', `/api/admin/video/${id}`); delete LIB.videos[id]; LIB.channels = R() ? LIB.channels.filter(() => true) : LIB.channels; },
       settings: async (patch) => req(patch ? 'POST' : 'GET', '/api/admin/settings', patch),
       uploadSub: async (id, file, lang) => { const v = await req('POST', `/api/admin/sub/${id}?lang=${encodeURIComponent(lang || 'ar')}`, file, { raw: true, extra: { 'Content-Type': 'text/plain' } }); LIB.videos[id] = normalize(v); return v; },
-      /** رفع ملف مع تقدّم عبر XHR. */
-      upload: (file, { channel = '', title = '' } = {}, onProgress) => new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
+      /**
+       * رفع ملف مع تقدّم. مع تخزين R2 يذهب الملف من المتصفح إلى R2 مباشرة
+       * (الخادم يوقّع الرابط فقط) فلا يقيّده حجم الخادم ولا مهلته.
+       */
+      upload: async (file, { channel = '', title = '' } = {}, onProgress) => {
+        if (SITE && SITE.storage === 'r2') {
+          const init = await req('POST', '/api/admin/upload/init', { name: file.name, channel, title, size: file.size });
+          await xhrSend('PUT', init.url, file, onProgress, { 'Content-Type': file.type || 'application/octet-stream' }, false);
+          const rec = await req('POST', '/api/admin/upload/finish', { id: init.id }, undefined, { tries: 3 });
+          LIB.videos[rec.id] = normalize(rec);
+          return rec;
+        }
         const q = new URLSearchParams({ name: file.name, channel, title });
-        xhr.open('POST', `${API}/api/admin/upload?${q}`);
-        for (const [k, v] of Object.entries(headers({ 'Content-Type': 'application/octet-stream' }))) xhr.setRequestHeader(k, v);
-        xhr.upload.onprogress = (e) => { if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total); };
-        xhr.onload = () => { try { const d = JSON.parse(xhr.responseText); if (d.ok) { LIB.videos[d.data.id] = normalize(d.data); resolve(d.data); } else reject(new Error(d.error || 'UPLOAD_FAILED')); } catch { reject(new Error('UPLOAD_FAILED')); } };
-        xhr.onerror = () => reject(new Error('NETWORK'));
-        xhr.send(file);
-      }),
+        const text = await xhrSend('POST', `${API}/api/admin/upload?${q}`, file, onProgress, headers({ 'Content-Type': 'application/octet-stream' }), true);
+        let d = null;
+        try { d = JSON.parse(text); } catch { throw new Error('UPLOAD_FAILED'); }
+        if (!d.ok) { const e = new Error(d.error || 'UPLOAD_FAILED'); e.code = d.code || d.error; throw e; }
+        LIB.videos[d.data.id] = normalize(d.data);
+        return d.data;
+      },
       refresh: loadLibrary,
     },
   };
+  /** إرسال ملف مع تقدّم عبر XHR (fetch لا يعطي تقدّم الرفع). */
+  function xhrSend(method, url, body, onProgress, hdrs = {}, expectJson = true) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open(method, url);
+      for (const [k, v] of Object.entries(hdrs)) xhr.setRequestHeader(k, v);
+      xhr.upload.onprogress = (e) => { if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total); };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) return resolve(xhr.responseText);
+        if (expectJson) {
+          try { const d = JSON.parse(xhr.responseText); const e = new Error(d.error || `HTTP_${xhr.status}`); e.code = d.code || d.error; e.status = xhr.status; return reject(e); } catch { /* ليس JSON */ }
+        }
+        const e = new Error(`HTTP_${xhr.status}`); e.status = xhr.status; reject(e);
+      };
+      xhr.onerror = () => reject(Object.assign(new Error('NETWORK'), { code: 'NETWORK' }));
+      xhr.ontimeout = () => reject(Object.assign(new Error('TIMEOUT'), { code: 'TIMEOUT' }));
+      xhr.send(body);
+    });
+  }
+
   function slimUser() { return { history: user.history.slice(0, 60), likes: user.likes, subscriptions: user.subscriptions, playCount: user.playCount, notInterested: user.notInterested, progress: user.progress }; }
 })(window.LT = window.LT || {});
