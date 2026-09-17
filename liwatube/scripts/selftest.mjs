@@ -376,6 +376,43 @@ section('الخادم فوق مكتبة سطح المكتب (external) والم�
   const st2 = await share.stop();
   ok(st2.running === false, 'إيقاف المشاركة');
 }
+// ————————————————————————————————— بقاء الجلسة عبر إعادة التشغيل (استضافة بلا قرص دائم)
+section('جلسة المشرف عبر إعادة التشغيل');
+{
+  const { LiwaTubeServer } = require(path.join(root, 'server/server.js'));
+  const PW = 'pw-env-123';
+  const call = async (srv, method, url, body, tok) => {
+    const h = { 'X-Device': 'dev' };
+    if (tok) h.Authorization = `Bearer ${tok}`;
+    let b = body;
+    if (body !== undefined && !(body instanceof Uint8Array)) { b = JSON.stringify(body); h['Content-Type'] = 'application/json'; }
+    const r = await fetch(`http://127.0.0.1:${srv.port}${url}`, { method, headers: h, body: b });
+    return { status: r.status, data: await r.json().catch(() => null) };
+  };
+  const dirA = path.join(tmp, 'sess-a');
+  const dirB = path.join(tmp, 'sess-b');
+  let srv = new LiwaTubeServer({ dataDir: dirA, port: 0, host: '127.0.0.1', log: () => {}, adminPassword: PW });
+  await srv.listen();
+  const tok = (await call(srv, 'POST', '/api/login', { password: PW })).data.data.token;
+  ok(Boolean(tok), 'تسجيل الدخول بكلمة مرور البيئة');
+  ok((await call(srv, 'POST', '/api/admin/upload?name=a.mp4&channel=c', new Uint8Array(500), tok)).status === 200, 'الرفع يعمل بعد الدخول');
+  ok((await call(srv, 'POST', '/api/admin/settings', { currentPassword: PW, newPassword: 'other1' }, tok)).status === 409, 'تغيير كلمة المرور مرفوض عندما تأتي من البيئة');
+  await srv.close();
+  // إعادة تشغيل بمجلد بيانات جديد تمامًا = القرص غير دائم
+  srv = new LiwaTubeServer({ dataDir: dirB, port: 0, host: '127.0.0.1', log: () => {}, adminPassword: PW });
+  await srv.listen();
+  ok((await call(srv, 'GET', '/api/me', undefined, tok)).data.data.admin === true, 'الرمز يبقى صالحًا بعد إعادة التشغيل');
+  ok((await call(srv, 'POST', '/api/admin/upload?name=b.mp4&channel=c', new Uint8Array(500), tok)).status === 200, 'الرفع يعمل بعد إعادة التشغيل');
+  ok((await call(srv, 'POST', '/api/admin/upload?name=c.mp4', new Uint8Array(500), `${tok}x`)).status === 401, 'رمز مزوّر مرفوض');
+  await srv.close();
+  // كلمة مرور مختلفة في البيئة تُبطل الرموز القديمة
+  srv = new LiwaTubeServer({ dataDir: dirB, port: 0, host: '127.0.0.1', log: () => {}, adminPassword: 'changed-99' });
+  await srv.listen();
+  ok((await call(srv, 'GET', '/api/me', undefined, tok)).data.data.admin === false, 'تغيير كلمة مرور البيئة يُبطل الرموز');
+  ok((await call(srv, 'POST', '/api/login', { password: 'changed-99' })).status === 200, 'الدخول بكلمة مرور البيئة الجديدة');
+  ok((await call(srv, 'POST', '/api/login', { password: PW })).status === 401, 'الدخول بالقديمة مرفوض');
+  await srv.close();
+}
 function PNG_1PX_JPEG() { return Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(200, 1), Buffer.from([0xff, 0xd9])]); }
 
 await fsp.rm(tmp, { recursive: true, force: true });

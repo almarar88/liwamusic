@@ -126,9 +126,13 @@ class LiwaTubeServer {
   constructor({ dataDir, port = 8787, host = '0.0.0.0', adminPassword = null, log = console.log, external = null } = {}) {
     this.dataDir = path.resolve(dataDir || process.env.LIWATUBE_DATA || path.join(ROOT, 'server-data'));
     this.port = port; this.host = host; this.log = log; this.external = external;
+    this.seedPassword = adminPassword || process.env.LIWATUBE_ADMIN_PASSWORD || null;
     this.db = new DB(this.dataDir);
     if (!this.db.data.extMeta) this.db.data.extMeta = {}; // id -> { views, hidden } للمكتبة الخارجية
-    if (adminPassword && !this.db.data.admin) { this.db.data.admin = lock.hashPin(adminPassword); this.db.save(); }
+    if (adminPassword && (!this.db.data.admin || !lock.verifyPin(adminPassword, this.db.data.admin))) {
+      this.db.data.admin = lock.hashPin(adminPassword);
+      this.db.save();
+    }
     this.ai = new AI({ dir: this.dataDir, safeStorage: null });
     this.loginAttempts = new Map();
     this.server = http.createServer((req, res) => this.handle(req, res).catch((e) => {
@@ -140,6 +144,7 @@ class LiwaTubeServer {
   /** يضبط كلمة مرور المشرف مباشرة (يستخدمه التطبيق المضمِّن). */
   setAdminPassword(password) {
     if (!password) return false;
+    this.seedPassword = String(password);
     this.db.data.admin = lock.hashPin(String(password));
     this.db.save();
     return true;
@@ -151,15 +156,29 @@ class LiwaTubeServer {
   async close() { await this.db.flush(); await new Promise((r) => this.server.close(r)); }
 
   // ---------- المصادقة
+  /**
+   * مفتاح توقيع الرموز. إن كانت كلمة مرور المشرف من متغيّر البيئة فالمفتاح يُشتق منها،
+   * فتبقى الجلسة صالحة حتى لو أُعيد تشغيل الخادم على استضافة بلا قرص دائم (تُمسح فيها db.json).
+   */
+  tokenSecret() {
+    if (this.seedPassword) return crypto.createHash('sha256').update(`liwatube-token:${this.seedPassword}`).digest('hex');
+    return this.db.data.secret;
+  }
+  /** بصمة بيانات الاعتماد الحالية: تتغيّر عند تغيير كلمة المرور فتُبطل الرموز القديمة. */
+  adminFingerprint() {
+    if (this.seedPassword) return crypto.createHash('sha256').update(`liwatube-v:${this.seedPassword}`).digest('hex').slice(0, 8);
+    return this.db.data.admin ? this.db.data.admin.hash.slice(0, 8) : '';
+  }
+  newToken() { return this.sign({ admin: true, iat: Date.now(), v: this.adminFingerprint() }); }
   sign(payload) {
     const body = b64u(JSON.stringify(payload));
-    const sig = crypto.createHmac('sha256', this.db.data.secret).update(body).digest('base64url');
+    const sig = crypto.createHmac('sha256', this.tokenSecret()).update(body).digest('base64url');
     return `${body}.${sig}`;
   }
   verify(token) {
     if (!token || !token.includes('.')) return null;
     const [body, sig] = token.split('.');
-    const want = crypto.createHmac('sha256', this.db.data.secret).update(body).digest('base64url');
+    const want = crypto.createHmac('sha256', this.tokenSecret()).update(body).digest('base64url');
     if (sig.length !== want.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(want))) return null;
     try { return JSON.parse(Buffer.from(body, 'base64url').toString('utf8')); } catch { return null; }
   }
@@ -167,7 +186,7 @@ class LiwaTubeServer {
     const auth = req.headers.authorization || '';
     const token = auth.startsWith('Bearer ') ? auth.slice(7) : (new URL(req.url, 'http://x').searchParams.get('token') || '');
     const p = this.verify(token);
-    return Boolean(p && p.admin && p.v === (this.db.data.admin && this.db.data.admin.hash.slice(0, 8)));
+    return Boolean(p && p.admin && this.db.data.admin && p.v === this.adminFingerprint());
   }
   device(req) { return String(req.headers['x-device'] || '').slice(0, 64) || 'anon'; }
 
@@ -246,7 +265,8 @@ class LiwaTubeServer {
       const { password } = await readJSON(req);
       if (!password || String(password).length < 4) return err(res, 400, 'WEAK_PASSWORD');
       this.db.data.admin = lock.hashPin(String(password)); this.db.save();
-      return ok(res, { token: this.sign({ admin: true, iat: Date.now(), v: this.db.data.admin.hash.slice(0, 8) }) });
+      if (!this.seedPassword) this.seedPassword = null;
+      return ok(res, { token: this.newToken() });
     }
     if (a === 'login' && m === 'POST') {
       const ip = req.socket.remoteAddress || 'x';
@@ -256,7 +276,7 @@ class LiwaTubeServer {
       const { password } = await readJSON(req);
       if (!this.db.data.admin || !lock.verifyPin(String(password || ''), this.db.data.admin)) { att.n++; this.loginAttempts.set(ip, att); return err(res, 401, 'WRONG_PASSWORD'); }
       this.loginAttempts.delete(ip);
-      return ok(res, { token: this.sign({ admin: true, iat: Date.now(), v: this.db.data.admin.hash.slice(0, 8) }) });
+      return ok(res, { token: this.newToken() });
     }
     if (a === 'me' && m === 'GET') return ok(res, { admin, site: this.siteInfo() });
     if (a === 'library' && m === 'GET') return ok(res, this.publicLibrary(req, admin && url.searchParams.get('all') === '1'));
@@ -403,7 +423,7 @@ class LiwaTubeServer {
 
     // — المشرف
     if (a === 'admin') {
-      if (!admin) return err(res, 401, 'UNAUTHORIZED');
+      if (!admin) return err(res, 401, 'SESSION_EXPIRED');
       if (b === 'videos' && m === 'GET') return ok(res, this.publicLibrary(req, true));
       if (b === 'stats' && m === 'GET') {
         const vids = Object.values(this.allVideos());
@@ -491,6 +511,8 @@ class LiwaTubeServer {
           if ('aiModel' in patch && MODELS.some((x) => x.id === patch.aiModel)) s.aiModel = patch.aiModel;
           if ('aiKey' in patch) { if (patch.aiKey) this.ai.setKey(patch.aiKey); else this.ai.clearKey(); }
           if (patch.newPassword) {
+            // إن كانت كلمة المرور من متغيّر البيئة فهي مصدر الحقيقة: تغييرها من الواجهة يضيع عند إعادة التشغيل
+            if (this.seedPassword) return err(res, 409, 'PASSWORD_MANAGED_BY_ENV');
             if (!lock.verifyPin(String(patch.currentPassword || ''), this.db.data.admin)) return err(res, 401, 'WRONG_PASSWORD');
             if (String(patch.newPassword).length < 4) return err(res, 400, 'WEAK_PASSWORD');
             this.db.data.admin = lock.hashPin(String(patch.newPassword));

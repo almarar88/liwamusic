@@ -56,6 +56,8 @@
         if (!data || !data.ok) {
           const e = new Error((data && data.error) || `HTTP_${res.status}`);
           e.code = (data && data.code) || e.message; e.status = res.status;
+          // انتهت جلسة المشرف (أعيد تشغيل الخادم أو تغيّرت كلمة المرور) — أسقط الرمز
+          if (res.status === 401 && token) { token = ''; store.set('lt.token', ''); if (LT.state) LT.state.auth = { admin: false, site: SITE }; }
           throw e;
         }
         return data.data;

@@ -8,6 +8,8 @@
       studio: 'لوحة التحكم', dash: 'نظرة عامة', upload: 'رفع', videos: 'المقاطع', settings: 'الإعدادات', login: 'دخول المشرف', setup: 'إنشاء كلمة مرور المشرف', password: 'كلمة المرور', enter: 'دخول', logout: 'تسجيل الخروج',
       dropHint: 'اسحب المقاطع هنا أو اضغط للاختيار', dropSub: 'MP4 / WebM / MKV / MOV — بأي حجم، تُرفع مباشرة إلى خادمك', channel: 'القناة', newChannel: 'قناة جديدة…', titleOpt: 'العنوان (اختياري، يُشتق من اسم الملف)',
       uploading: 'جارٍ الرفع', processing: 'توليد الصورة المصغّرة…', done: 'تم', failed: 'فشل', queued: 'بالانتظار',
+      expired: 'انتهت جلسة المشرف — سجّل الدخول ثم أعد الرفع', envPw: 'كلمة المرور مضبوطة من متغيّر LIWATUBE_ADMIN_PASSWORD في إعدادات الاستضافة — غيّرها من هناك',
+      netErr: 'انقطع الاتصال بالخادم', tooBig: 'الملف كبير جدًا على الخادم', badType: 'صيغة غير مدعومة',
       views: 'المشاهدات', likes: 'الإعجابات', comments: 'التعليقات', size: 'الحجم', hours: 'ساعات', analyzed: 'محلَّل بالذكاء',
       title: 'العنوان', duration: 'المدة', added: 'أُضيف', visible: 'ظاهر', hidden: 'مخفي', edit: 'تعديل', del: 'حذف', sub: 'ترجمة', ai: 'تحليل', thumb: 'صورة مصغّرة',
       confirmDel: 'حذف المقطع نهائيًا من الخادم؟', siteName: 'اسم الموقع', welcome: 'رسالة ترحيب (تظهر في الرئيسية)', allowComments: 'السماح بالتعليقات للزوار',
@@ -20,6 +22,8 @@
       studio: 'Studio', dash: 'Overview', upload: 'Upload', videos: 'Videos', settings: 'Settings', login: 'Admin login', setup: 'Create admin password', password: 'Password', enter: 'Sign in', logout: 'Sign out',
       dropHint: 'Drop videos here or click to choose', dropSub: 'MP4 / WebM / MKV / MOV — any size, uploaded straight to your server', channel: 'Channel', newChannel: 'New channel…', titleOpt: 'Title (optional, derived from file name)',
       uploading: 'Uploading', processing: 'Generating thumbnail…', done: 'Done', failed: 'Failed', queued: 'Queued',
+      expired: 'Admin session expired — sign in and upload again', envPw: 'The password comes from LIWATUBE_ADMIN_PASSWORD in your hosting settings — change it there',
+      netErr: 'Lost connection to the server', tooBig: 'File too large for the server', badType: 'Unsupported format',
       views: 'Views', likes: 'Likes', comments: 'Comments', size: 'Size', hours: 'hours', analyzed: 'AI analyzed',
       title: 'Title', duration: 'Duration', added: 'Added', visible: 'Visible', hidden: 'Hidden', edit: 'Edit', del: 'Delete', sub: 'Subtitle', ai: 'Analyze', thumb: 'Thumbnail',
       confirmDel: 'Permanently delete this video from the server?', siteName: 'Site name', welcome: 'Welcome message (shown on Home)', allowComments: 'Allow viewer comments',
@@ -122,13 +126,30 @@
           S().lib = await window.liwa.studio.refresh();
           if (channel && !channels.includes(channel)) { channels.push(channel); chanSel.insertBefore(h('option', { value: channel, selected: true }, channel), chanSel.lastChild); chanNew.hidden = true; }
           if (S().settings.aiAutoAnalyze && S().ai.enabled) LT.actions.analyze(rec.id, { silent: true });
-        } catch (e) { it.el.classList.add('err'); it.st.textContent = `${t('failed')}: ${e.message}`; }
+        } catch (e) {
+          it.el.classList.add('err');
+          it.st.textContent = `${t('failed')}: ${msgFor(e)}`;
+          if (isExpired(e)) { queue.length = 0; toast(t('expired'), { err: true }); S().auth = { admin: false, site: S().site }; login(); break; }
+        }
       }
       busy = false;
       LT.renderSidebar && LT.renderSidebar();
     }
     return h('div', h('div.up-meta', h('div', h('label', t('channel')), chanSel, chanNew), h('div', h('label', t('titleOpt')), titleIn)), zone, fileIn, list);
   }
+  const isExpired = (e) => e && (e.status === 401 || ['SESSION_EXPIRED', 'UNAUTHORIZED'].includes(e.code));
+  /** يترجم أخطاء الخادم إلى رسالة مفهومة. */
+  function msgFor(e) {
+    const c = e && (e.code || e.message);
+    if (isExpired(e)) return t('expired');
+    if (c === 'PASSWORD_MANAGED_BY_ENV') return t('envPw');
+    if (c === 'NETWORK' || c === 'TIMEOUT') return t('netErr');
+    if (c === 'PAYLOAD_TOO_LARGE' || e.status === 413) return t('tooBig');
+    if (c === 'UNSUPPORTED_TYPE' || e.status === 415) return t('badType');
+    return String(c || 'error');
+  }
+  LT.studioMsg = msgFor;
+
   /** يولّد الصورة المصغّرة والمدة في متصفح المشرف ويرفعها. */
   async function makeThumb(id) {
     const v = S().lib.videos[id] || (await window.liwa.studio.refresh()).videos[id];
@@ -199,7 +220,13 @@
   }
   async function settingsTab() {
     const cfg = await window.liwa.studio.settings();
-    const save = async (patch) => { try { Object.assign(cfg, await window.liwa.studio.settings(patch)); S().site = await window.liwa.auth.status().then((a) => a.site); S().ai = await window.liwa.ai.status(); toast(t('saved')); } catch (e) { toast(e.code === 'WRONG_PASSWORD' ? t('wrongPw') : e.code === 'WEAK_PASSWORD' ? t('weakPw') : e.message, { err: true }); } };
+    const save = async (patch) => {
+      try { Object.assign(cfg, await window.liwa.studio.settings(patch)); S().site = await window.liwa.auth.status().then((a) => a.site); S().ai = await window.liwa.ai.status(); toast(t('saved')); }
+      catch (e) {
+        toast(e.code === 'WRONG_PASSWORD' ? t('wrongPw') : e.code === 'WEAK_PASSWORD' ? t('weakPw') : msgFor(e), { err: true });
+        if (isExpired(e)) { S().auth = { admin: false, site: S().site }; login(); }
+      }
+    };
     const sw = (key) => { const el = h('span.switch', { class: cfg[key] ? 'on' : '', tabindex: 0, onclick: async () => { await save({ [key]: !cfg[key] }); el.classList.toggle('on', cfg[key]); } }); return el; };
     const name = h('input', { type: 'text', value: cfg.siteName, onchange: () => save({ siteName: name.value }) });
     const welcome = h('input', { type: 'text', value: cfg.welcome || '', onchange: () => save({ welcome: welcome.value }) });
