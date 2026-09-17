@@ -1,0 +1,51 @@
+appId: com.liwamusic.liwatube
+productName: LiwaTube
+copyright: © LiwaMusic — تم إنشاؤه عن طريق LiwaMusic
+directories:
+  app: .            # مجلد app/ هنا هو تطبيق الهاتف (Capacitor) وليس هيكل «حزمتين» لـ electron-builder
+  output: release
+  buildResources: build
+files:
+  - electron/**
+  - renderer/**
+  - server/**
+  - web/**
+  - build/icon.png
+  - package.json
+  - "!**/*.map"
+  - "!**/test/**"
+  - "!**/*.md"
+  - "!app/**"
+  - "!server-data/**"
+  - "!release/**"
+win:
+  icon: build/icon.png
+  target:
+    - target: nsis
+      arch: [x64]
+  artifactName: LiwaTube-${version}-win-${arch}.${ext}
+  executableName: LiwaTube
+nsis:
+  artifactName: LiwaTube-Setup-${version}.${ext}
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: LiwaTube
+  installerLanguages: [ar_SA, en_US]
+  language: 1025
+  deleteAppDataOnUninstall: false
+fileAssociations:
+  - ext: mp4
+    name: MP4 Video
+    role: Viewer
+  - ext: mkv
+    name: Matroska Video
+    role: Viewer
+  - ext: webm
+    name: WebM Video
+    role: Viewer
+  - ext: mov
+    name: QuickTime Video
+    role: Viewer

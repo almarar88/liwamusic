@@ -12,6 +12,15 @@
 
 ---
 
+## 📺 جديد: LiwaTube — يوتيوبك الخاص
+
+في مجلد [`liwatube/`](liwatube/README.md) تطبيق شقيق يحوّل مجلدات الفيديو إلى **يوتيوب خاص بك**:
+رئيسية وShorts وقنوات واشتراكات وسجل و«شاهد لاحقًا» ومشغّل بأسلوب يوتيوب، مع ذكاء اصطناعي اختياري
+يشاهد الفيديو ويكتب العنوان والوصف والفصول ويجيب عن أسئلتك أثناء المشاهدة. كل شيء محلي، وبقفل PIN اختياري.
+وفيه صفحة **«مشاركة»**: ضغطة واحدة تجعل كمبيوترك خادمًا يشاهد منه أهلك وأصدقاؤك مكتبتك من الهاتف أو التلفاز (رمز QR،
+ورابط إنترنت مجاني بلا حساب)، مع **APK واحد للهاتف وتلفاز أندرويد**، وخادم مستقل اختياري للرابط الدائم.
+**[⬇ تحميل LiwaTube.apk](https://github.com/almarar88/liwamusic/releases/download/tube-android-v1.2.1/LiwaTube.apk)** · البناء: `build-liwatube.yml` (ويندوز، وسوم `tube-v*`) و `build-liwatube-android.yml` (APK، وسوم `tube-android-v*`).
+
 ## ⬇️ التحميل
 
 [![آخر إصدار](https://img.shields.io/github/v/release/almarar88/liwamusic?label=%D8%A2%D8%AE%D8%B1%20%D8%A5%D8%B5%D8%AF%D8%A7%D8%B1&color=7c5cff)](https://github.com/almarar88/liwamusic/releases/latest)

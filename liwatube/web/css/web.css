@@ -1,0 +1,121 @@
+/* LiwaTube Web — تعديلات الويب والهاتف والتلفاز فوق app.css */
+body.web .win-btn, body.web .tb-sep { display: none; }
+body.web .drag-area, body.web .drag { -webkit-app-region: no-drag; }
+body.web { user-select: text; }
+.connect .lock-card input { letter-spacing: 0; font-size: 16px; width: 300px; direction: ltr; }
+.connect .lock-card #connectErr { color: #ff6b6b; min-height: 18px; }
+
+/* ————— لوحة التحكم (Studio) */
+.studio { max-width: 1100px; }
+.studio-tabs { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
+.dropzone { border: 2px dashed var(--line); border-radius: var(--r); padding: 36px 20px; text-align: center; color: var(--muted); cursor: pointer; transition: all .2s; }
+.dropzone:hover, .dropzone.over { border-color: rgb(var(--accent)); color: var(--text); background: rgb(var(--accent) / .06); }
+.dropzone b { display: block; font-size: 18px; color: var(--text); margin-bottom: 6px; }
+.up-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.up-item { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; background: var(--surface); border-radius: 10px; padding: 10px 14px; }
+.up-item .bar { grid-column: 1 / -1; height: 4px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
+.up-item .bar i { display: block; height: 100%; width: 0; background: rgb(var(--accent)); transition: width .2s; }
+.up-item .st { color: var(--muted); font-size: 12.5px; }
+.up-item.done .st { color: #34c780; }
+.up-item.err .st { color: #ff6b6b; }
+.up-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+.up-meta label { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.up-meta input, .up-meta select { width: 100%; background: var(--bg2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; color: var(--text); outline: none; }
+.vtable { width: 100%; border-collapse: collapse; }
+.vtable th, .vtable td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: start; vertical-align: middle; font-size: 13.5px; }
+.vtable th { color: var(--muted); font-weight: 600; font-size: 12.5px; }
+.vtable .t { width: 120px; aspect-ratio: 16/9; border-radius: 6px; object-fit: cover; background: var(--surface); display: block; }
+.vtable tr.hidden-row { opacity: .55; }
+.vtable .acts { display: flex; gap: 4px; }
+.vtable .acts .icon-btn { width: 34px; height: 34px; }
+.studio .empty { padding: 40px; }
+
+/* ————— الهاتف */
+.bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; height: 56px; background: var(--bg); border-top: 1px solid var(--line); z-index: 60; padding-bottom: env(safe-area-inset-bottom); }
+.bottom-nav button { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 10.5px; color: var(--muted); }
+.bottom-nav button.on { color: var(--text); }
+.bottom-nav button svg { width: 24px; height: 24px; }
+@media (max-width: 1000px) {
+  .shell { grid-template-columns: var(--side-min) 1fr; }
+  .shell .nav-item { flex-direction: column; gap: 6px; height: 74px; justify-content: center; padding: 0; font-size: 10px; }
+  .shell .nav-item .cnt, .shell .nav-sep, .shell .nav-head, .shell .nav-ch, .shell .nav-foot { display: none; }
+  .watch { grid-template-columns: 1fr; }
+  .w-side .card.mini-card .thumb { width: 150px; }
+  .topbar { grid-template-columns: auto 1fr auto; }
+}
+@media (max-width: 700px) {
+  :root { --tb: 50px; }
+  body.web .sidebar { display: none; }
+  .shell { grid-template-columns: 1fr !important; }
+  body.web .bottom-nav:not([hidden]) { display: flex; }
+  .main { padding-bottom: 60px; }
+  .view { padding: 10px 12px 80px; }
+  .topbar { padding: 0 6px; gap: 6px; grid-template-columns: auto minmax(0, 1fr) auto; }
+  .topbar .drag-area { display: none; }
+  .search input { min-width: 0; width: 100%; }
+  .tb-center { min-width: 0; }
+  .watch { grid-template-columns: minmax(0, 1fr); }
+  .w-main, .w-side { min-width: 0; }
+  .topbar .brand-name { display: none; }
+  .topbar #btnMenu { display: none; }
+  .grid { grid-template-columns: 1fr; gap: 20px; }
+  .grid.dense { grid-template-columns: 1fr 1fr; }
+  .thumb { border-radius: 0; margin: 0 -12px; width: calc(100% + 24px); }
+  .card.list { flex-direction: column; gap: 8px; }
+  .card.list .thumb { width: calc(100% + 24px); }
+  .card.mini-card .thumb { width: 140px; margin: 0; }
+  .card.mini-card { gap: 10px; }
+  .player { border-radius: 0; margin: 0 -12px; width: calc(100% + 24px); max-height: 56vw; }
+  .w-title { font-size: 17px; }
+  .w-actions { margin-inline-start: 0; overflow-x: auto; flex-wrap: nowrap; width: 100%; padding-bottom: 4px; }
+  .w-ch { width: 100%; }
+  .mini { width: calc(100% - 16px); inset-inline-end: 8px; bottom: 64px; }
+  .modal { width: 96vw; }
+  .chips { top: -10px; }
+  .short .s-frame { width: calc(100vw - 80px); height: calc(100vh - var(--tb) - 76px); }
+  .studio-tabs { overflow-x: auto; flex-wrap: nowrap; }
+  .up-meta { grid-template-columns: 1fr; }
+  .vtable .t { width: 80px; }
+  .vtable th:nth-child(4), .vtable td:nth-child(4), .vtable th:nth-child(5), .vtable td:nth-child(5) { display: none; }
+  .p-btn { width: 36px; height: 36px; }
+  .p-vol input { display: none; }
+  .ch-head { flex-wrap: wrap; }
+  .pl-head { flex-direction: column; }
+  .pl-head .thumb { width: 100%; margin: 0; }
+}
+@media (hover: none) {
+  .card .more { opacity: 1; }
+  .player .p-controls { opacity: 1; }
+  .thumb video.hover { display: none; }
+}
+
+/* ————— التلفاز: خطوط أكبر وتركيز واضح للتنقّل بالريموت */
+body.tv { font-size: 18px; }
+body.tv .view { padding: 24px 48px 60px; }
+body.tv .grid { grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 36px 24px; }
+body.tv .card .ttl { font-size: 19px; }
+body.tv .card .sub { font-size: 15px; }
+body.tv .nav-item { height: 52px; font-size: 18px; }
+body.tv .chip { font-size: 16px; padding: 8px 16px; }
+body.tv .btn { height: 44px; font-size: 16px; }
+body.tv .search input { font-size: 17px; }
+body.tv .p-btn { width: 52px; height: 52px; }
+body.tv .p-btn svg { width: 30px; height: 30px; }
+body.tv .p-time, body.tv .p-chapter { font-size: 16px; }
+body.tv .topbar .win-btn { display: none; }
+body.tv :focus { outline: none; }
+body.tv .card:focus .thumb, body.tv .card:focus-visible .thumb { outline: 4px solid #fff; outline-offset: -4px; box-shadow: 0 0 0 4px rgb(var(--accent)); transform: scale(1.03); transition: transform .15s; }
+body.tv .card:focus { z-index: 1; }
+body.tv button:focus, body.tv .chip:focus, body.tv .nav-item:focus, body.tv .tag:focus, body.tv .ch:focus, body.tv input:focus, body.tv select:focus, body.tv .ch-card:focus, body.tv .switch:focus { outline: 3px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 5px rgb(var(--accent) / .7); }
+body.tv .player:focus { outline: 3px solid rgb(var(--accent)); outline-offset: -3px; }
+body.tv .player.paused .p-controls, body.tv .player:focus .p-controls { opacity: 1; }
+body.tv .mini { width: 480px; }
+body.tv .thumb video.hover { display: none; }
+body.tv .comments .c-in, body.tv .chat-in { display: none; }
+
+/* لافتة فتح التطبيق */
+.app-banner { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: rgb(var(--accent) / .15); border-bottom: 1px solid rgb(var(--accent) / .4); font-size: 13.5px; position: fixed; top: 0; left: 0; right: 0; z-index: 70; backdrop-filter: blur(8px); }
+
+/* حالة «جارٍ الاتصال» في شاشة الخادم */
+.connect.connecting #connectUrl, .connect.connecting #connectBtn { display: none; }
+.connect.connecting .lock-card::after { content: ""; width: 26px; height: 26px; border-radius: 50%; border: 3px solid var(--line); border-top-color: rgb(var(--accent)); animation: spin 1s linear infinite; }

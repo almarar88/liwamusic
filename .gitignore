@@ -7,3 +7,9 @@ mobile/node_modules/
 mobile/android/
 mobile/*.apk
 !download/LiwaMusic.apk
+liwatube/node_modules/
+liwatube/release/
+liwatube/server-data/
+liwatube/app/node_modules/
+liwatube/app/android/
+liwatube/app/www/

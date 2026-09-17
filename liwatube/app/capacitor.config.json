@@ -1,0 +1,20 @@
+{
+  "appId": "com.liwamusic.liwatube",
+  "appName": "LiwaTube",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#0f0f0f"
+  },
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
+  "plugins": {
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#0f0f0f",
+      "overlaysWebView": false
+    }
+  }
+}

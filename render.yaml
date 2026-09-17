@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: liwatube
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /api/site
+    envVars:
+      - key: LIWATUBE_ADMIN_PASSWORD
+        sync: false
+      # التخزين الدائم على Cloudflare R2 — المقاطع تبقى للأبد خارج الخادم.
+      # اتركها فارغة لتُستخدم أقراص الخادم بدلًا منها.
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
