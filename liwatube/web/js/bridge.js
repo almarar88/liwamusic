@@ -111,6 +111,20 @@
       setTimeout(() => inp.focus(), 50);
     });
   }
+  /** بعض الاستضافات المجانية تُنيم الخادم؛ أول طلب قد يستغرق دقيقة حتى يستيقظ. */
+  async function reachSite({ tries = 5, onWait } = {}) {
+    for (let i = 0; i < tries; i++) {
+      try { return await req('GET', '/api/site'); }
+      catch (e) {
+        if (e.status && e.status !== 502 && e.status !== 503 && e.status !== 504) throw e;
+        if (i === tries - 1) throw e;
+        if (onWait) onWait(i + 1, tries);
+        await new Promise((r) => setTimeout(r, 4000 + i * 3000));
+      }
+    }
+    throw new Error('UNREACHABLE');
+  }
+
   LT.beforeBoot = async () => {
     if (STANDALONE) {
       watchDeepLinks();
@@ -119,8 +133,21 @@
       await new Promise((r) => setTimeout(r, 150)); // فرصة لـ getLaunchUrl
     }
     if (STANDALONE && !API) await connectScreen();
-    try { SITE = await req('GET', '/api/site'); }
-    catch { if (STANDALONE) { API = ''; store.set('lt.server', ''); await connectScreen(); SITE = await req('GET', '/api/site'); } else { document.body.innerHTML = '<div class="empty"><h2>تعذّر الوصول إلى خادم LiwaTube</h2></div>'; return false; } }
+    const wake = document.getElementById('connectMsg');
+    const note = (n, t) => { if (wake && !document.getElementById('connect').hidden) wake.textContent = `جارٍ إيقاظ الخادم… (${n}/${t})`; };
+    for (;;) {
+      try { SITE = await reachSite({ onWait: note }); break; }
+      catch (e) {
+        if (!STANDALONE) { document.body.innerHTML = '<div class="empty"><h2>تعذّر الوصول إلى خادم LiwaTube</h2><p>تأكد من أن الخادم يعمل ثم أعد المحاولة.</p></div>'; return false; }
+        const box = document.getElementById('connect');
+        const errEl = document.getElementById('connectErr');
+        box.hidden = false;
+        if (errEl) errEl.textContent = `تعذّر الوصول إلى ${API || 'الخادم'} — تأكد من الشبكة أو غيّر العنوان`;
+        const inp = document.getElementById('connectUrl');
+        if (inp && !inp.value) inp.value = API || '';
+        await connectScreen();
+      }
+    }
     document.title = SITE.name || 'LiwaTube';
     return true;
   };

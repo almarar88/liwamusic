@@ -26,7 +26,13 @@ copy('web/manifest.webmanifest', 'manifest.webmanifest');
 let html = fs.readFileSync(path.join(root, 'web/index.html'), 'utf8');
 html = html.replace('<script src="js/util.js"></script>', '<script src="js/standalone.js"></script>\n<script src="js/util.js"></script>');
 fs.writeFileSync(path.join(www, 'index.html'), html, 'utf8');
-const def = String(process.env.LIWATUBE_SERVER || '').trim().replace(/\/+$/, '');
+// الخادم الافتراضي: متغيّر البيئة، وإلا ملف app/default-server.txt (حرّره لتغيير خادمك)
+let def = String(process.env.LIWATUBE_SERVER || '').trim();
+if (!def) {
+  const file = path.join(app, 'default-server.txt');
+  if (fs.existsSync(file)) def = fs.readFileSync(file, 'utf8').split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'))[0] || '';
+}
+def = def.replace(/\/+$/, '');
 fs.writeFileSync(path.join(www, 'js/standalone.js'), `window.LT_STANDALONE = true;\nwindow.LT_DEFAULT_SERVER = ${JSON.stringify(def)};\n`, 'utf8');
 if (def) console.log('✓ الخادم الافتراضي المضمَّن:', def);
 console.log('✓ index.html (standalone)');
