@@ -24,19 +24,50 @@
   LT.api = { base: () => API, device };
 
   const headers = (extra = {}) => ({ 'X-Device': device, ...(token ? { Authorization: `Bearer ${token}` } : {}), ...extra });
-  async function req(method, url, body, { raw = false, extra = {} } = {}) {
-    const opts = { method, headers: headers(extra) };
-    if (body !== undefined) {
-      if (raw) { opts.body = body; }
-      else { opts.body = JSON.stringify(body); opts.headers['Content-Type'] = 'application/json'; }
+  /** أخطاء عابرة تستحق إعادة المحاولة: انقطاع شبكة، أو خادم نائم/مشغول. */
+  const transient = (e) => e.code === 'NETWORK' || e.code === 'TIMEOUT' || [502, 503, 504, 429].includes(e.status);
+  /**
+   * طلب HTTP مع مهلة وإعادة محاولة للطلبات الآمنة (GET/HEAD) — مهم لأن الاستضافات
+   * المجانية تُنيم الخادم وأول طلب قد يستغرق دقيقة.
+   */
+  async function req(method, url, body, { raw = false, extra = {}, tries = null, timeout = 60000 } = {}) {
+    const safe = method === 'GET' || method === 'HEAD';
+    const max = tries != null ? tries : (safe ? 4 : 1);
+    let last = null;
+    for (let attempt = 0; attempt < max; attempt++) {
+      const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+      const timer = ctrl ? setTimeout(() => ctrl.abort(), timeout) : null;
+      const opts = { method, headers: headers(extra) };
+      if (ctrl) opts.signal = ctrl.signal;
+      if (body !== undefined) {
+        if (raw) { opts.body = body; }
+        else { opts.body = JSON.stringify(body); opts.headers['Content-Type'] = 'application/json'; }
+      }
+      try {
+        let res;
+        try { res = await fetch(`${API}${url}`, opts); }
+        catch (netErr) {
+          const e = new Error(netErr && netErr.name === 'AbortError' ? 'TIMEOUT' : 'NETWORK');
+          e.code = e.message;
+          throw e;
+        }
+        let data = null;
+        try { data = await res.json(); } catch { /* ليس JSON */ }
+        if (!data || !data.ok) {
+          const e = new Error((data && data.error) || `HTTP_${res.status}`);
+          e.code = (data && data.code) || e.message; e.status = res.status;
+          throw e;
+        }
+        return data.data;
+      } catch (e) {
+        last = e;
+        if (attempt === max - 1 || !transient(e)) throw e;
+        await new Promise((r) => setTimeout(r, 2000 + attempt * 3000));
+      } finally { if (timer) clearTimeout(timer); }
     }
-    let res;
-    try { res = await fetch(`${API}${url}`, opts); } catch { const e = new Error('NETWORK'); e.code = 'NETWORK'; throw e; }
-    let data = null;
-    try { data = await res.json(); } catch { /* ليس JSON */ }
-    if (!data || !data.ok) { const e = new Error((data && data.error) || `HTTP_${res.status}`); e.code = (data && data.code) || e.message; e.status = res.status; throw e; }
-    return data.data;
+    throw last;
   }
+  LT.reqRetryable = transient;
 
   // ---------- الافتراضيات المحلية
   const SETTINGS = {
@@ -90,10 +121,28 @@
   }
 
   // ---------- شاشة الاتصال (التطبيق المستقل)
-  async function connectScreen() {
+  /** حالة «جارٍ الاتصال»: تظهر فورًا فلا يرى المستخدم شاشة سوداء أثناء انتظار الخادم. */
+  function showConnecting(msg) {
+    const box = document.getElementById('connect');
+    if (!box) return;
+    box.hidden = false;
+    box.classList.add('connecting');
+    const m = document.getElementById('connectMsg');
+    if (m) m.textContent = msg;
+    const e = document.getElementById('connectErr');
+    if (e) e.textContent = '';
+  }
+  function hideConnect() {
+    const box = document.getElementById('connect');
+    if (box) { box.hidden = true; box.classList.remove('connecting'); }
+  }
+
+  async function connectScreen(errorMsg = '') {
     const box = document.getElementById('connect');
     const inp = document.getElementById('connectUrl'); const btn = document.getElementById('connectBtn'); const errEl = document.getElementById('connectErr');
-    box.hidden = false; inp.value = API || '';
+    box.classList.remove('connecting');
+    box.hidden = false; inp.value = inp.value || API || '';
+    if (errEl) errEl.textContent = errorMsg;
     return new Promise((resolve) => {
       const go = async () => {
         let url = inp.value.trim().replace(/\/+$/, '');
@@ -104,7 +153,7 @@
           const r = await fetch(`${url}/api/site`, { headers: { 'X-Device': device } });
           const d = await r.json();
           if (!d || !d.ok) throw new Error('bad');
-          API = url; store.set('lt.server', url); box.hidden = true; resolve(true);
+          API = url; store.set('lt.server', url); hideConnect(); resolve(true);
         } catch { errEl.textContent = 'تعذّر الوصول إلى الخادم — تأكد من العنوان والشبكة'; }
       };
       btn.onclick = go; inp.onkeydown = (e) => { if (e.key === 'Enter') go(); };
@@ -114,9 +163,9 @@
   /** بعض الاستضافات المجانية تُنيم الخادم؛ أول طلب قد يستغرق دقيقة حتى يستيقظ. */
   async function reachSite({ tries = 5, onWait } = {}) {
     for (let i = 0; i < tries; i++) {
-      try { return await req('GET', '/api/site'); }
+      try { return await req('GET', '/api/site', undefined, { tries: 1 }); }
       catch (e) {
-        if (e.status && e.status !== 502 && e.status !== 503 && e.status !== 504) throw e;
+        if (!transient(e)) throw e;
         if (i === tries - 1) throw e;
         if (onWait) onWait(i + 1, tries);
         await new Promise((r) => setTimeout(r, 4000 + i * 3000));
@@ -133,19 +182,18 @@
       await new Promise((r) => setTimeout(r, 150)); // فرصة لـ getLaunchUrl
     }
     if (STANDALONE && !API) await connectScreen();
-    const wake = document.getElementById('connectMsg');
-    const note = (n, t) => { if (wake && !document.getElementById('connect').hidden) wake.textContent = `جارٍ إيقاظ الخادم… (${n}/${t})`; };
+    const note = (n, t) => showConnecting(n > 1 ? `جارٍ إيقاظ الخادم… (${n}/${t})` : 'جارٍ الاتصال بالخادم…');
     for (;;) {
-      try { SITE = await reachSite({ onWait: note }); break; }
-      catch (e) {
+      try {
+        if (STANDALONE) showConnecting('جارٍ الاتصال بالخادم…');
+        SITE = await reachSite({ onWait: note });
+        hideConnect();
+        break;
+      } catch (e) {
         if (!STANDALONE) { document.body.innerHTML = '<div class="empty"><h2>تعذّر الوصول إلى خادم LiwaTube</h2><p>تأكد من أن الخادم يعمل ثم أعد المحاولة.</p></div>'; return false; }
-        const box = document.getElementById('connect');
-        const errEl = document.getElementById('connectErr');
-        box.hidden = false;
-        if (errEl) errEl.textContent = `تعذّر الوصول إلى ${API || 'الخادم'} — تأكد من الشبكة أو غيّر العنوان`;
         const inp = document.getElementById('connectUrl');
-        if (inp && !inp.value) inp.value = API || '';
-        await connectScreen();
+        if (inp) inp.value = API || '';
+        await connectScreen(`تعذّر الوصول إلى ${API || 'الخادم'} — تأكد من الشبكة أو غيّر العنوان`);
       }
     }
     document.title = SITE.name || 'LiwaTube';

@@ -1,6 +1,6 @@
 {
   "name": "liwatube-app",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "LiwaTube للهاتف والتلفاز (Android APK) — تطبيق مشاهدة يتصل بخادم LiwaTube · تم إنشاؤه عن طريق LiwaMusic",
   "private": true,
   "scripts": {

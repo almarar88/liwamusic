@@ -432,5 +432,23 @@
     setTimeout(runThumbs, 800);
     armIdle();
   }
-  window.addEventListener('DOMContentLoaded', () => boot().catch((err) => { console.error(err); document.body.append(h('pre', { style: { padding: '20px', color: '#f66' } }, String(err.stack || err))); }));
+  /** شاشة خطأ واضحة بدل الشاشة السوداء عند فشل الإقلاع، مع زر إعادة محاولة. */
+  function bootError(err) {
+    console.error(err);
+    const ar = (S.settings && S.settings.lang) !== 'en';
+    const net = err && ['NETWORK', 'TIMEOUT'].includes(err.code);
+    const wrap = document.getElementById('view') || document.body;
+    wrap.innerHTML = '';
+    wrap.append(h('div.empty',
+      h('h2', net ? (ar ? 'تعذّر الوصول إلى الخادم' : 'Cannot reach the server') : (ar ? 'تعذّر تشغيل التطبيق' : 'Could not start')),
+      h('p', net
+        ? (ar ? 'تأكد من اتصالك بالإنترنت وأن الخادم يعمل. إن كان على استضافة مجانية فقد يحتاج دقيقة ليستيقظ.' : 'Check your connection and that the server is running. Free hosting may need a minute to wake up.')
+        : String((err && err.message) || err)),
+      h('div.row', { style: { justifyContent: 'center', gap: '8px', marginTop: '16px' } },
+        h('button.btn.primary', { onclick: () => location.reload() }, ar ? 'إعادة المحاولة' : 'Retry'),
+        LT.mode === 'web' && LT.changeServer ? h('button.btn', { onclick: () => LT.changeServer() }, ar ? 'تغيير الخادم' : 'Change server') : null)));
+    const lock = document.getElementById('lock'); if (lock) lock.hidden = true;
+    const conn = document.getElementById('connect'); if (conn) conn.hidden = true;
+  }
+  window.addEventListener('DOMContentLoaded', () => boot().catch(bootError));
 })(window.LT);
