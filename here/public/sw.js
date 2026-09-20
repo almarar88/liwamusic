@@ -1,6 +1,6 @@
 /* Here — service worker: يخزّن الواجهة والصور، ويمرّر الـ API مباشرة للشبكة. */
-const VERSION = 'here-v1';
-const CORE = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest', 'img/logo.svg', 'img/hero.jpg', 'icons/icon-192.png'];
+const VERSION = 'here-v2';
+const CORE = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest', 'img/logo-256.png', 'img/hero.jpg', 'icons/icon-192.png'];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));
 });

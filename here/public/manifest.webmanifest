@@ -1,13 +1,13 @@
 {
-  "name": "Here — specialty cafe",
+  "name": "Here",
   "short_name": "Here",
   "description": "اطلب قهوتك من Here: استلام، سيارة، أو توصيل — مع نقاط وعضويات.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f6f1ea",
-  "theme_color": "#f6f1ea",
+  "background_color": "#c2bdb8",
+  "theme_color": "#c2bdb8",
   "lang": "ar",
   "dir": "rtl",
   "icons": [

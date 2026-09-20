@@ -1,6 +1,6 @@
 # Here — تطبيق طلبات وعضويات كوفي Here
 
-<p align="center"><img src="public/icons/icon-192.png" width="96" alt="Here"></p>
+<p align="center"><img src="public/img/logo-256.png" width="120" alt="Here"></p>
 
 تطبيق للعملاء يعرض منتجات **Here Specialty Cafe** ويستقبل الطلبات، مع **شاشة للكوفي**
 تصلها الطلبات لحظيًا ببيانات العميل والسيارة أو العنوان، ونظام **عضويات ونقاط**.

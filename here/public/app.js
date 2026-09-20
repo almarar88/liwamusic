@@ -353,13 +353,13 @@ async function viewMembership() {
   const ly = S.menu.loyalty;
   const tiersHtml = (cur) => `<div class="tiers">${ly.tiers.map((x) => `<div class="tier-box ${x.id === cur ? 'on' : ''}"><b>${esc(L(x.name))}</b>${x.min ? `${fmt(x.min)}+ ${t('pts')}` : '0+'}<br>×${x.multiplier}</div>`).join('')}</div>`;
   const rules = `<div class="panel"><h3>${t('howItWorks')}</h3><ul class="perks"><li>${t('rule1', { p: ly.pointsPerAed })}</li><li>${t('rule2', { step: ly.redeemStep, val: ly.redeemValueAed })}</li><li>${t('rule3')}</li><li>${t('rule4')}</li></ul></div>`;
-  if (!S.token) return `<h1>${t('membership')}</h1><div class="member-card"><span class="wordmark">here</span><span class="tier">✦ ${t('membership')}</span><div class="name">${t('joinTitle')}</div><div class="small" style="opacity:.85;margin-top:4px">${t('joinSub')}</div><div class="pts"><b>+${ly.welcomeBonus}</b><span>${t('pts')}</span></div></div>
+  if (!S.token) return `<h1>${t('membership')}</h1><div class="member-card"><img class="logo-mini" src="img/logo-256.png" alt=""><span class="tier">✦ ${t('membership')}</span><div class="name">${t('joinTitle')}</div><div class="small" style="opacity:.85;margin-top:4px">${t('joinSub')}</div><div class="pts"><b>+${ly.welcomeBonus}</b><span>${t('pts')}</span></div></div>
     <div style="margin:14px 0"><button class="btn" id="loginBtn">${t('join')}</button></div>${tiersHtml(null)}<br>${rules}`;
   await refreshMe(); const c = S.customer; if (!c) return '';
   const tier = ly.tiers.find((x) => x.id === c.tier) || ly.tiers[0];
   const prog = c.nextTier ? Math.min(100, Math.round((c.lifetimePoints - tier.min) / (c.nextTier.min - tier.min) * 100)) : 100;
   return `<h1>${t('membership')}</h1>
-    <div class="member-card ${c.tier}"><span class="wordmark">here</span><span class="tier">✦ ${esc(L(c.tierName))}</span><div class="name">${esc(c.name)}</div><div class="code">${esc(c.memberCode)}</div><div class="pts"><b>${fmt(c.points)}</b><span>${t('pts')}</span></div></div>
+    <div class="member-card ${c.tier}"><img class="logo-mini" src="img/logo-256.png" alt=""><span class="tier">✦ ${esc(L(c.tierName))}</span><div class="name">${esc(c.name)}</div><div class="code">${esc(c.memberCode)}</div><div class="pts"><b>${fmt(c.points)}</b><span>${t('pts')}</span></div></div>
     <div class="qr-box"><div id="qr"></div><div class="small muted" style="text-align:center">${t('showAtCounter')}</div></div>
     <div class="panel" style="margin-top:12px">${c.nextTier ? `<div class="small" style="margin-bottom:6px">${t('toNext', { n: fmt(c.nextTier.remaining), tier: L(c.nextTier.name) })}</div>` : `<div class="small" style="margin-bottom:6px">${t('topTier')}</div>`}<div class="progress"><i style="width:${prog}%"></i></div>
       <ul class="perks">${(L(tier.perks) || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>
@@ -380,7 +380,7 @@ function viewAccount() {
     <div class="panel"><h3>${t('branches')}</h3><div class="stack">${m.branches.map((b) => `<div class="row between"><div><b>${esc(L(b.name))}</b><div class="small muted">${esc(L(b.area))} · ${t('hours')}: ${esc(b.hours)}</div></div><a class="btn secondary sm" href="${b.maps}" target="_blank" rel="noopener">🗺 ${t('map')}</a></div>`).join('')}</div></div>
     <div class="panel"><h3>📲 ${t('install')}</h3><div class="small muted" id="installHint">${t('installHint')}</div><div id="installBox" class="hidden" style="margin-top:10px"><button class="btn secondary" id="installBtn">${t('installBtn')}</button></div></div>
     <div class="panel"><a class="row between" href="${m.brand.instagram}" target="_blank" rel="noopener"><span>📸 ${t('follow')}</span><span dir="ltr">@here_ae ↗</span></a></div>
-    <p class="muted small" style="text-align:center;margin-top:20px"><span class="wordmark" style="font-size:16px">here</span><br>${t('version')} 0.1 · ${lang === 'ar' ? 'نسخة تجريبية' : 'Preview build'}</p>`;
+    <p class="muted small" style="text-align:center;margin-top:20px"><img class="logo-mini" src="img/logo-256.png" alt="" style="width:40px;height:40px"><br>${t('version')} 0.1 · ${lang === 'ar' ? 'نسخة تجريبية' : 'Preview build'}</p>`;
 }
 function mountAccount() {
   const v = $('#view');

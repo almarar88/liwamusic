@@ -16,8 +16,8 @@ cfg.server.url = url; fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2)); c
 
 fs.mkdirSync('www', { recursive: true });
 fs.writeFileSync('www/index.html', `<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Here</title>
-<body style="margin:0;display:grid;place-items:center;min-height:100vh;background:#f6f1ea;font-family:sans-serif;color:#151412;text-align:center">
-<div><div style="font-family:'Courier New',monospace;letter-spacing:.3em;font-size:32px">here</div><p>يتعذّر الاتصال بالخادم حاليًا.<br>تأكد من الإنترنت ثم أعد فتح التطبيق.</p><button onclick="location.href='${url}'" style="padding:10px 18px;border-radius:12px;border:0;background:#151412;color:#fff;font-size:15px">إعادة المحاولة</button></div></body></html>`);
+<body style="margin:0;display:grid;place-items:center;min-height:100vh;background:#c2bdb8;font-family:sans-serif;color:#151412;text-align:center">
+<div><div style="font-size:32px;font-weight:700;letter-spacing:.1em">HERE</div><p>يتعذّر الاتصال بالخادم حاليًا.<br>تأكد من الإنترنت ثم أعد فتح التطبيق.</p><button onclick="location.href='${url}'" style="padding:10px 18px;border-radius:12px;border:0;background:#151412;color:#fff;font-size:15px">إعادة المحاولة</button></div></body></html>`);
 console.log('✓ www/index.html (صفحة احتياطية)');
 
 const ANDROID = process.argv[2] || 'android';
@@ -25,7 +25,7 @@ if (fs.existsSync(ANDROID)) {
   const strings = path.join(ANDROID, 'app/src/main/res/values/strings.xml');
   if (fs.existsSync(strings)) fs.writeFileSync(strings, fs.readFileSync(strings, 'utf8').replace(/<string name="app_name">[^<]*<\/string>/, '<string name="app_name">Here</string>').replace(/<string name="title_activity_main">[^<]*<\/string>/, '<string name="title_activity_main">Here</string>'));
   const colors = path.join(ANDROID, 'app/src/main/res/values/colors.xml');
-  if (fs.existsSync(colors)) fs.writeFileSync(colors, fs.readFileSync(colors, 'utf8').replace(/<color name="colorPrimary">[^<]*<\/color>/, '<color name="colorPrimary">#151412</color>').replace(/<color name="colorPrimaryDark">[^<]*<\/color>/, '<color name="colorPrimaryDark">#151412</color>').replace(/<color name="colorAccent">[^<]*<\/color>/, '<color name="colorAccent">#b07a4a</color>'));
+  if (fs.existsSync(colors)) fs.writeFileSync(colors, fs.readFileSync(colors, 'utf8').replace(/<color name="colorPrimary">[^<]*<\/color>/, '<color name="colorPrimary">#c2bdb8</color>').replace(/<color name="colorPrimaryDark">[^<]*<\/color>/, '<color name="colorPrimaryDark">#a9a39e</color>').replace(/<color name="colorAccent">[^<]*<\/color>/, '<color name="colorAccent">#8f6a88</color>'));
   const gradle = path.join(ANDROID, 'app/build.gradle');
   if (fs.existsSync(gradle)) { const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); fs.writeFileSync(gradle, fs.readFileSync(gradle, 'utf8').replace(/versionCode \d+/, `versionCode ${Number(process.env.VERSION_CODE || 1)}`).replace(/versionName "[^"]*"/, `versionName "${pkg.version}"`)); }
   // الأيقونات: نفس صورة 512 تُصغَّر عبر أداة الأندرويد؛ نضع الأصل في كل mipmap (Android يقبل الأحجام الأكبر)
