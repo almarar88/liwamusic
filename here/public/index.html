@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Here — specialty cafe</title>
+<meta name="description" content="اطلب قهوتك من Here Specialty Cafe: استلام من الكوفي، توصيل للسيارة، أو للعنوان. نقاط وعضويات.">
+<meta name="theme-color" content="#f6f1ea">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Here">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-64.png" sizes="64x64">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar" id="topbar">
+  <a class="brand" href="#/"><span class="wordmark">here</span><span class="sub">specialty cafe</span></a>
+  <div class="top-actions">
+    <button class="icon-btn" id="langBtn" title="Language / اللغة">EN</button>
+    <button class="icon-btn" id="branchBtn" title="الفرع">📍 <span id="branchLabel"></span></button>
+  </div>
+</header>
+
+<main id="view" class="view"></main>
+
+<div id="cartBar" class="cart-bar hidden" role="button" tabindex="0">
+  <span class="cart-count" id="cartCount">0</span>
+  <span class="cart-label" data-t="viewCart">عرض السلة</span>
+  <span class="cart-total" id="cartTotal">0</span>
+</div>
+
+<nav class="bottom-nav" id="bottomNav">
+  <a href="#/" data-route="menu"><span class="ico">☕</span><span data-t="navMenu">القائمة</span></a>
+  <a href="#/orders" data-route="orders"><span class="ico">🧾</span><span data-t="navOrders">طلباتي</span></a>
+  <a href="#/membership" data-route="membership"><span class="ico">✦</span><span data-t="navMembership">العضوية</span></a>
+  <a href="#/account" data-route="account"><span class="ico">👤</span><span data-t="navAccount">حسابي</span></a>
+</nav>
+
+<div id="sheet" class="sheet hidden" aria-modal="true" role="dialog">
+  <div class="sheet-backdrop" id="sheetBackdrop"></div>
+  <div class="sheet-panel" id="sheetPanel"></div>
+</div>
+<div id="toast" class="toast hidden"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js" defer></script>
+<script src="app.js" type="module"></script>
+</body>
+</html>

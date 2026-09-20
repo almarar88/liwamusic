@@ -1,0 +1,7 @@
+node_modules/
+data/db.json
+data/db.json.tmp
+mobile/node_modules/
+mobile/android/
+mobile/www/
+*.apk

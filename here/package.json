@@ -1,0 +1,14 @@
+{
+  "name": "here-cafe-app",
+  "version": "0.1.0",
+  "description": "Here — تطبيق طلبات وعضويات كوفي Here (قائمة، طلب للاستلام/السيارة/التوصيل، نقاط وعضويات، شاشة الكوفي)",
+  "private": true,
+  "type": "module",
+  "main": "server.js",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node scripts/selftest.mjs"
+  }
+}

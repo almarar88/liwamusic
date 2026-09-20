@@ -1,0 +1,101 @@
+name: بناء تطبيق Here للأندرويد (APK)
+
+# غلاف Capacitor يفتح تطبيق Here من خادمك. عرّف متغيّر المستودع HERE_SERVER_URL
+# (Settings → Secrets and variables → Actions → Variables) أو مرّره عند التشغيل اليدوي.
+
+on:
+  workflow_dispatch:
+    inputs:
+      server_url:
+        description: "رابط خادم Here (https://...)"
+        required: false
+        default: ""
+      tag:
+        description: "وسم الإصدار الذي سيُنشر (مثال here-v0.1.0)"
+        required: true
+        default: "here-v0.1.0"
+  push:
+    tags:
+      - "here-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: here/mobile
+    env:
+      HERE_SERVER_URL: ${{ github.event.inputs.server_url || vars.HERE_SERVER_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+
+      - name: تثبيت الاعتماديات
+        run: npm install --no-audit --no-fund
+
+      - name: تجهيز الغلاف (رابط الخادم + صفحة احتياطية)
+        run: node scripts/prepare.mjs
+
+      - name: توليد مشروع أندرويد
+        run: npx cap add android
+
+      - name: مزامنة
+        run: npx cap sync android
+
+      - name: تهيئة المشروع (اسم، أيقونة، إصدار)
+        run: node scripts/prepare.mjs android
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+
+      - name: بناء APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: توقيع APK
+        run: |
+          set -e
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          UNSIGNED=$(find android/app/build/outputs/apk/release -name "*.apk" | head -1)
+          if [ -n "${{ secrets.HERE_KEYSTORE_B64 }}" ]; then
+            echo "${{ secrets.HERE_KEYSTORE_B64 }}" | base64 -d > /tmp/ks.jks
+            KS=/tmp/ks.jks; KS_PASS="${{ secrets.HERE_KEYSTORE_PASSWORD }}"; KS_ALIAS="${{ secrets.HERE_KEY_ALIAS }}"
+          else
+            KS=../../mobile/signing/liwamusic.jks; KS_PASS=liwamusic; KS_ALIAS=liwamusic
+          fi
+          "$BT/zipalign" -p -f 4 "$UNSIGNED" Here-aligned.apk
+          "$BT/apksigner" sign --ks "$KS" --ks-pass "pass:$KS_PASS" --ks-key-alias "$KS_ALIAS" --key-pass "pass:$KS_PASS" --out Here.apk Here-aligned.apk
+          "$BT/apksigner" verify --print-certs Here.apk
+          ls -la Here.apk
+
+      - name: رفع الـ APK كمُخرَج
+        uses: actions/upload-artifact@v4
+        with:
+          name: Here-APK
+          path: here/mobile/Here.apk
+          if-no-files-found: error
+
+      - name: نشر الإصدار
+        if: github.event_name == 'push' || github.event.inputs.tag != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: Here للأندرويد ${{ github.event.inputs.tag || github.ref_name }}
+          files: here/mobile/Here.apk
+          body: |
+            ## Here — تطبيق طلبات وعضويات الكوفي
+
+            نزّل `Here.apk` وثبّته على هاتفك (سيطلب السماح بالتثبيت من مصدر غير معروف).
+            التطبيق يفتح خادم Here على: ${{ env.HERE_SERVER_URL }}

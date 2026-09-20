@@ -1,0 +1,1691 @@
+{
+ "brand": {
+  "name": "Here",
+  "tagline": {
+   "en": "specialty cafe",
+   "ar": "كوفي مختص"
+  },
+  "instagram": "https://www.instagram.com/here_ae",
+  "currency": "AED"
+ },
+ "branches": [
+  {
+   "id": "park",
+   "name": {
+    "en": "Sheikha Salama Bint Butti Park",
+    "ar": "حديقة الشيخة سلامة بنت بطي"
+   },
+   "area": {
+    "en": "Al Dhafra",
+    "ar": "الظفرة"
+   },
+   "hours": "06:00–00:00",
+   "open": "06:00",
+   "close": "23:59",
+   "phone": "",
+   "maps": "https://maps.google.com/?q=Here+Specialty+Cafe+Sheikha+Salama+Bint+Butti+Park",
+   "modes": [
+    "pickup",
+    "car",
+    "delivery"
+   ]
+  },
+  {
+   "id": "mezairaa",
+   "name": {
+    "en": "Mezaira'a",
+    "ar": "مزيرعة"
+   },
+   "area": {
+    "en": "Liwa",
+    "ar": "ليوا"
+   },
+   "hours": "11:00–23:00",
+   "open": "11:00",
+   "close": "23:00",
+   "phone": "",
+   "maps": "https://maps.google.com/?q=Here+Specialty+Cafe+Mezaira'a",
+   "modes": [
+    "pickup",
+    "car",
+    "delivery"
+   ]
+  }
+ ],
+ "ordering": {
+  "deliveryFee": 10,
+  "deliveryMinimum": 30,
+  "freeDeliveryAbove": 100,
+  "prepMinutes": {
+   "pickup": 10,
+   "car": 10,
+   "delivery": 35
+  },
+  "payments": [
+   "cash",
+   "card_on_pickup"
+  ],
+  "vatIncluded": true
+ },
+ "loyalty": {
+  "pointsPerAed": 1,
+  "welcomeBonus": 50,
+  "redeemStep": 100,
+  "redeemValueAed": 10,
+  "maxRedeemPercent": 50,
+  "tiers": [
+   {
+    "id": "here",
+    "name": {
+     "en": "Here",
+     "ar": "عضو"
+    },
+    "min": 0,
+    "multiplier": 1,
+    "perks": {
+     "en": [
+      "1 point per AED",
+      "100 points = 10 AED"
+     ],
+     "ar": [
+      "نقطة لكل درهم",
+      "100 نقطة = 10 دراهم"
+     ]
+    }
+   },
+   {
+    "id": "silver",
+    "name": {
+     "en": "Silver",
+     "ar": "فضي"
+    },
+    "min": 500,
+    "multiplier": 1.25,
+    "perks": {
+     "en": [
+      "+25% points",
+      "Priority pickup"
+     ],
+     "ar": [
+      "+25% نقاط",
+      "أولوية في التحضير"
+     ]
+    }
+   },
+   {
+    "id": "gold",
+    "name": {
+     "en": "Gold",
+     "ar": "ذهبي"
+    },
+    "min": 1500,
+    "multiplier": 1.5,
+    "perks": {
+     "en": [
+      "+50% points",
+      "Free birthday drink",
+      "Early access to new drinks"
+     ],
+     "ar": [
+      "+50% نقاط",
+      "مشروب مجاني في عيد ميلادك",
+      "تجربة المشروبات الجديدة أولًا"
+     ]
+    }
+   }
+  ]
+ },
+ "categories": [
+  {
+   "id": "hot",
+   "name": {
+    "en": "Hot Coffee",
+    "ar": "قهوة ساخنة"
+   },
+   "icon": "☕"
+  },
+  {
+   "id": "iced",
+   "name": {
+    "en": "Iced Coffee",
+    "ar": "قهوة باردة"
+   },
+   "icon": "🧊"
+  },
+  {
+   "id": "matcha",
+   "name": {
+    "en": "Matcha",
+    "ar": "ماتشا"
+   },
+   "icon": "🍵"
+  },
+  {
+   "id": "fresh",
+   "name": {
+    "en": "Refreshers",
+    "ar": "منعشات"
+   },
+   "icon": "🌺"
+  },
+  {
+   "id": "shakes",
+   "name": {
+    "en": "Shakes & Acai",
+    "ar": "شيك وأساي"
+   },
+   "icon": "🥤"
+  },
+  {
+   "id": "dessert",
+   "name": {
+    "en": "Desserts",
+    "ar": "حلويات"
+   },
+   "icon": "🍰"
+  },
+  {
+   "id": "bakery",
+   "name": {
+    "en": "Bakery",
+    "ar": "مخبوزات"
+   },
+   "icon": "🥐"
+  },
+  {
+   "id": "bottles",
+   "name": {
+    "en": "Bottles",
+    "ar": "عبوات"
+   },
+   "icon": "🍾"
+  },
+  {
+   "id": "bundles",
+   "name": {
+    "en": "Bundles",
+    "ar": "باقات"
+   },
+   "icon": "🎁"
+  },
+  {
+   "id": "water",
+   "name": {
+    "en": "Water",
+    "ar": "مياه"
+   },
+   "icon": "💧"
+  }
+ ],
+ "optionGroups": {
+  "coffee": [
+   {
+    "id": "milk",
+    "name": {
+     "en": "Milk",
+     "ar": "الحليب"
+    },
+    "required": true,
+    "choices": [
+     {
+      "id": "fresh",
+      "name": {
+       "en": "Fresh milk",
+       "ar": "حليب طازج"
+      },
+      "price": 0
+     },
+     {
+      "id": "oat",
+      "name": {
+       "en": "Oat milk",
+       "ar": "حليب شوفان"
+      },
+      "price": 5
+     },
+     {
+      "id": "almond",
+      "name": {
+       "en": "Almond milk",
+       "ar": "حليب لوز"
+      },
+      "price": 5
+     },
+     {
+      "id": "lactose-free",
+      "name": {
+       "en": "Lactose-free",
+       "ar": "خالي اللاكتوز"
+      },
+      "price": 5
+     }
+    ]
+   },
+   {
+    "id": "sugar",
+    "name": {
+     "en": "Sweetness",
+     "ar": "السكر"
+    },
+    "required": true,
+    "choices": [
+     {
+      "id": "none",
+      "name": {
+       "en": "No sugar",
+       "ar": "بدون سكر"
+      },
+      "price": 0
+     },
+     {
+      "id": "light",
+      "name": {
+       "en": "Light",
+       "ar": "خفيف"
+      },
+      "price": 0
+     },
+     {
+      "id": "regular",
+      "name": {
+       "en": "Regular",
+       "ar": "عادي"
+      },
+      "price": 0
+     }
+    ]
+   },
+   {
+    "id": "extras",
+    "name": {
+     "en": "Extras",
+     "ar": "إضافات"
+    },
+    "multi": true,
+    "choices": [
+     {
+      "id": "extra-shot",
+      "name": {
+       "en": "Extra shot",
+       "ar": "شوت إضافي"
+      },
+      "price": 6
+     }
+    ]
+   }
+  ],
+  "iced": [
+   {
+    "id": "milk",
+    "name": {
+     "en": "Milk",
+     "ar": "الحليب"
+    },
+    "required": true,
+    "choices": [
+     {
+      "id": "fresh",
+      "name": {
+       "en": "Fresh milk",
+       "ar": "حليب طازج"
+      },
+      "price": 0
+     },
+     {
+      "id": "oat",
+      "name": {
+       "en": "Oat milk",
+       "ar": "حليب شوفان"
+      },
+      "price": 5
+     },
+     {
+      "id": "almond",
+      "name": {
+       "en": "Almond milk",
+       "ar": "حليب لوز"
+      },
+      "price": 5
+     },
+     {
+      "id": "lactose-free",
+      "name": {
+       "en": "Lactose-free",
+       "ar": "خالي اللاكتوز"
+      },
+      "price": 5
+     }
+    ]
+   },
+   {
+    "id": "ice",
+    "name": {
+     "en": "Ice",
+     "ar": "الثلج"
+    },
+    "required": true,
+    "choices": [
+     {
+      "id": "regular",
+      "name": {
+       "en": "Regular ice",
+       "ar": "ثلج عادي"
+      },
+      "price": 0
+     },
+     {
+      "id": "less",
+      "name": {
+       "en": "Less ice",
+       "ar": "ثلج أقل"
+      },
+      "price": 0
+     }
+    ]
+   },
+   {
+    "id": "extras",
+    "name": {
+     "en": "Extras",
+     "ar": "إضافات"
+    },
+    "multi": true,
+    "choices": [
+     {
+      "id": "extra-shot",
+      "name": {
+       "en": "Extra shot",
+       "ar": "شوت إضافي"
+      },
+      "price": 6
+     }
+    ]
+   }
+  ],
+  "matcha": [
+   {
+    "id": "milk",
+    "name": {
+     "en": "Milk",
+     "ar": "الحليب"
+    },
+    "required": true,
+    "choices": [
+     {
+      "id": "fresh",
+      "name": {
+       "en": "Fresh milk",
+       "ar": "حليب طازج"
+      },
+      "price": 0
+     },
+     {
+      "id": "oat",
+      "name": {
+       "en": "Oat milk",
+       "ar": "حليب شوفان"
+      },
+      "price": 5
+     },
+     {
+      "id": "almond",
+      "name": {
+       "en": "Almond milk",
+       "ar": "حليب لوز"
+      },
+      "price": 5
+     }
+    ]
+   },
+   {
+    "id": "sugar",
+    "name": {
+     "en": "Sweetness",
+     "ar": "السكر"
+    },
+    "required": true,
+    "choices": [
+     {
+      "id": "none",
+      "name": {
+       "en": "Unsweetened",
+       "ar": "بدون سكر"
+      },
+      "price": 0
+     },
+     {
+      "id": "regular",
+      "name": {
+       "en": "Sweetened",
+       "ar": "محلّى"
+      },
+      "price": 0
+     }
+    ]
+   }
+  ],
+  "milk": [
+   {
+    "id": "milk",
+    "name": {
+     "en": "Milk",
+     "ar": "الحليب"
+    },
+    "required": true,
+    "choices": [
+     {
+      "id": "fresh",
+      "name": {
+       "en": "Fresh milk",
+       "ar": "حليب طازج"
+      },
+      "price": 0
+     },
+     {
+      "id": "oat",
+      "name": {
+       "en": "Oat milk",
+       "ar": "حليب شوفان"
+      },
+      "price": 5
+     },
+     {
+      "id": "almond",
+      "name": {
+       "en": "Almond milk",
+       "ar": "حليب لوز"
+      },
+      "price": 5
+     }
+    ]
+   }
+  ],
+  "brew": [
+   {
+    "id": "sugar",
+    "name": {
+     "en": "Sweetness",
+     "ar": "السكر"
+    },
+    "required": true,
+    "choices": [
+     {
+      "id": "none",
+      "name": {
+       "en": "No sugar",
+       "ar": "بدون سكر"
+      },
+      "price": 0
+     },
+     {
+      "id": "light",
+      "name": {
+       "en": "Light",
+       "ar": "خفيف"
+      },
+      "price": 0
+     },
+     {
+      "id": "regular",
+      "name": {
+       "en": "Regular",
+       "ar": "عادي"
+      },
+      "price": 0
+     }
+    ]
+   }
+  ],
+  "bottle": [
+   {
+    "id": "size",
+    "name": {
+     "en": "Size",
+     "ar": "الحجم"
+    },
+    "required": true,
+    "choices": [
+     {
+      "id": "small",
+      "name": {
+       "en": "Small bottle",
+       "ar": "عبوة صغيرة"
+      },
+      "price": 0
+     },
+     {
+      "id": "large",
+      "name": {
+       "en": "Large bottle (1L)",
+       "ar": "عبوة كبيرة (لتر)"
+      },
+      "price": 135
+     }
+    ]
+   }
+  ],
+  "none": []
+ },
+ "products": [
+  {
+   "id": "espresso",
+   "name": {
+    "en": "Espresso",
+    "ar": "إسبريسو"
+   },
+   "category": "hot",
+   "price": 18,
+   "description": {
+    "en": "Single origin pure Arabica. Clean, bright, and direct.",
+    "ar": "شوت إسبريسو من بن أرابيكا نقي، نظيف ومباشر."
+   },
+   "image": "img/products/espresso.jpg",
+   "optionGroup": "coffee",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "double-espresso",
+   "name": {
+    "en": "Double Espresso",
+    "ar": "دبل إسبريسو"
+   },
+   "category": "hot",
+   "price": 20,
+   "description": {
+    "en": "Double shot, full intensity. Bold, complex and  no compromise. Pure Arabica coffee.",
+    "ar": "شوتان بكامل الكثافة. جريء ومركّب بلا تنازلات."
+   },
+   "image": "img/products/double-espresso.jpg",
+   "optionGroup": "coffee",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "macchiato",
+   "name": {
+    "en": "Macchiato",
+    "ar": "ماكياتو"
+   },
+   "category": "hot",
+   "price": 23,
+   "description": {
+    "en": "Espresso and foam",
+    "ar": "إسبريسو مع طبقة رغوة خفيفة."
+   },
+   "image": "img/products/macchiato.jpg",
+   "optionGroup": "coffee",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "cortado",
+   "name": {
+    "en": "Cortado",
+    "ar": "كورتادو"
+   },
+   "category": "hot",
+   "price": 24,
+   "description": {
+    "en": "Double shot of Espresso less milk",
+    "ar": "شوتان إسبريسو مع القليل من الحليب."
+   },
+   "image": "img/products/cortado.jpg",
+   "optionGroup": "coffee",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "piccolo",
+   "name": {
+    "en": "Piccolo",
+    "ar": "بيكولو"
+   },
+   "category": "hot",
+   "price": 26,
+   "description": {
+    "en": "A single shot in a small glass, topped with warm evaporated steamed milk.",
+    "ar": "شوت واحد في كوب صغير مع حليب مبخّر دافئ."
+   },
+   "image": "img/products/piccolo.jpg",
+   "optionGroup": "coffee",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "flat-white",
+   "name": {
+    "en": "Flat White",
+    "ar": "فلات وايت"
+   },
+   "category": "hot",
+   "price": 26,
+   "description": {
+    "en": "Double espresso, silky micro foam and milk.",
+    "ar": "دبل إسبريسو مع حليب ورغوة ناعمة حريرية."
+   },
+   "image": "img/products/flat-white.jpg",
+   "optionGroup": "coffee",
+   "tags": [
+    "popular"
+   ],
+   "available": true
+  },
+  {
+   "id": "cappuccino",
+   "name": {
+    "en": "Cappuccino",
+    "ar": "كابتشينو"
+   },
+   "category": "hot",
+   "price": 27,
+   "description": {
+    "en": "Espresso, steamed milk and a generous cap of airy foam. Classic for a reason.",
+    "ar": "إسبريسو وحليب مبخّر وطبقة سخية من الرغوة الهوائية."
+   },
+   "image": "img/products/cappuccino.jpg",
+   "optionGroup": "coffee",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "latte",
+   "name": {
+    "en": "Latte",
+    "ar": "لاتيه"
+   },
+   "category": "hot",
+   "price": 28,
+   "description": {
+    "en": "Espresso met with velvety steamed milk. Smooth and balanced.",
+    "ar": "إسبريسو يلتقي بحليب مبخّر مخملي. ناعم ومتوازن."
+   },
+   "image": "img/products/latte.jpg",
+   "optionGroup": "coffee",
+   "tags": [
+    "popular"
+   ],
+   "available": true
+  },
+  {
+   "id": "spanish-latte",
+   "name": {
+    "en": "Spanish Latte",
+    "ar": "سبانش لاتيه"
+   },
+   "category": "hot",
+   "price": 30,
+   "description": {
+    "en": "Espresso softened with condensed milk, fresh steamed milk. Rich, sweet and satisfying.",
+    "ar": "إسبريسو مع حليب مكثّف وحليب طازج مبخّر. غني وحلو."
+   },
+   "image": "img/products/spanish-latte.jpg",
+   "optionGroup": "coffee",
+   "tags": [
+    "popular"
+   ],
+   "available": true
+  },
+  {
+   "id": "spanish-cortado",
+   "name": {
+    "en": "Spanish Cortado",
+    "ar": "سبانش كورتادو"
+   },
+   "category": "hot",
+   "price": 27,
+   "description": {
+    "en": "Single espresso with steamed milk and micro fine foam.",
+    "ar": "إسبريسو مع حليب مبخّر ورغوة ناعمة بلمسة حلاوة."
+   },
+   "image": "img/products/spanish-cortado.jpg",
+   "optionGroup": "coffee",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "spanish-piccolo",
+   "name": {
+    "en": "Spanish Piccolo",
+    "ar": "سبانش بيكولو"
+   },
+   "category": "hot",
+   "price": 23,
+   "description": {
+    "en": "A sweeter take on the piccolo. Less coffee, more milk.",
+    "ar": "نسخة أحلى من البيكولو. قهوة أقل وحليب أكثر."
+   },
+   "image": "img/products/spanish-piccolo.jpg",
+   "optionGroup": "coffee",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "long-black",
+   "name": {
+    "en": "Long Black",
+    "ar": "لونق بلاك"
+   },
+   "category": "hot",
+   "price": 21,
+   "description": {
+    "en": "Espresso poured over hot water. Clean, bold, and intense.",
+    "ar": "إسبريسو فوق ماء ساخن. نظيف وجريء ومكثّف."
+   },
+   "image": "img/products/long-black.jpg",
+   "optionGroup": "coffee",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "v60",
+   "name": {
+    "en": "V60",
+    "ar": "V60 تقطير يدوي"
+   },
+   "category": "hot",
+   "price": 35,
+   "description": {
+    "en": "",
+    "ar": "قهوة مقطّرة يدويًا من بن مختص، نكهة صافية وواضحة."
+   },
+   "image": "img/products/v60.jpg",
+   "optionGroup": "brew",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "v60-geisha",
+   "name": {
+    "en": "V60 Geisha",
+    "ar": "V60 جيشا يمني"
+   },
+   "category": "hot",
+   "price": 55,
+   "description": {
+    "en": "Rare Yemen Geisha beans. Complex, highly aromatic, and featuring notes of jasmine and stone fruit.",
+    "ar": "بن جيشا يمني نادر. مركّب وعطري للغاية."
+   },
+   "image": "img/products/v60-geisha.jpg",
+   "optionGroup": "brew",
+   "tags": [
+    "new"
+   ],
+   "available": true
+  },
+  {
+   "id": "hot-chocolate",
+   "name": {
+    "en": "Hot Chocolate",
+    "ar": "هوت شوكليت"
+   },
+   "category": "hot",
+   "price": 34,
+   "description": {
+    "en": "100% pure dark Chocolate, fresh milk on Top With whipped Cream and Mash Melon",
+    "ar": "شوكولاتة داكنة 100% مع حليب طازج وكريمة مخفوقة ومارشميلو."
+   },
+   "image": "img/products/hot-chocolate.jpg",
+   "optionGroup": "milk",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "iced-americano",
+   "name": {
+    "en": "Iced Americano",
+    "ar": "آيس أمريكانو"
+   },
+   "category": "iced",
+   "price": 21,
+   "description": {
+    "en": "A double shot of espresso over cold water and ice.",
+    "ar": "دبل إسبريسو فوق ماء بارد وثلج."
+   },
+   "image": "img/products/iced-americano.jpg",
+   "optionGroup": "iced",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "iced-latte",
+   "name": {
+    "en": "Iced Latte",
+    "ar": "آيس لاتيه"
+   },
+   "category": "iced",
+   "price": 28,
+   "description": {
+    "en": "Espresso over ice with cold fresh milk. Easy, clean and  everyday.",
+    "ar": "إسبريسو فوق الثلج مع حليب طازج بارد. سهل ونظيف ويومي."
+   },
+   "image": "img/products/iced-latte.jpg",
+   "optionGroup": "iced",
+   "tags": [
+    "popular"
+   ],
+   "available": true
+  },
+  {
+   "id": "iced-spanish-latte",
+   "name": {
+    "en": "Iced Spanish Latte",
+    "ar": "آيس سبانش لاتيه"
+   },
+   "category": "iced",
+   "price": 30,
+   "description": {
+    "en": "Cold Espresso, Fresh Milk, and condensed Milk",
+    "ar": "إسبريسو بارد وحليب طازج وحليب مكثّف."
+   },
+   "image": "img/products/iced-spanish-latte.jpg",
+   "optionGroup": "iced",
+   "tags": [
+    "popular"
+   ],
+   "available": true
+  },
+  {
+   "id": "cloudy-spanish-latte",
+   "name": {
+    "en": "Cloudy Spanish Latte",
+    "ar": "كلاودي سبانش لاتيه"
+   },
+   "category": "iced",
+   "price": 33,
+   "description": {
+    "en": "Smooth espresso blended with creamy milk and a hint of sweetness creating a delightfully cloudy texture Perfect served chilled for a refreshing Spanish inspired coffee experience",
+    "ar": "إسبريسو ناعم ممزوج بحليب كريمي ولمسة حلاوة، بقوام سحابي."
+   },
+   "image": "img/products/cloudy-spanish-latte.jpg",
+   "optionGroup": "iced",
+   "tags": [
+    "new"
+   ],
+   "available": true
+  },
+  {
+   "id": "iced-v60",
+   "name": {
+    "en": "Iced V60",
+    "ar": "آيس V60"
+   },
+   "category": "iced",
+   "price": 35,
+   "description": {
+    "en": "Manual brewing",
+    "ar": "قهوة مقطّرة يدويًا تُقدَّم باردة. خفيفة ونظيفة ومنعشة."
+   },
+   "image": "img/products/iced-v60.jpg",
+   "optionGroup": "brew",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "cold-brew",
+   "name": {
+    "en": "Cold Brew",
+    "ar": "كولد برو"
+   },
+   "category": "iced",
+   "price": 35,
+   "description": {
+    "en": "Smooth and rich coffee steeped slowly in cold water for a refreshing and less acidic taste perfect for hot days",
+    "ar": "قهوة منقوعة ببطء في ماء بارد لنكهة ناعمة وغنية."
+   },
+   "image": "img/products/cold-brew.jpg",
+   "optionGroup": "brew",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "dirty-espresso",
+   "name": {
+    "en": "Dirty Espresso",
+    "ar": "ديرتي إسبريسو"
+   },
+   "category": "iced",
+   "price": 35,
+   "description": {
+    "en": "Dirty espresso is a smooth, rich shot of coffee with a thick, velvety feel. It has a nice layer of golden-brown foam on top called crema, which adds to the flavor and texture. When espresso is creamy, it means it was made just right, with the right grind, pressure, and fresh coffee beans. It tastes bold but smooth, with a silky finish.",
+    "ar": "شوت إسبريسو غني فوق حليب بارد كثيف."
+   },
+   "image": "img/products/dirty-espresso.jpg",
+   "optionGroup": "iced",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "espresso-shake",
+   "name": {
+    "en": "Espresso Shake",
+    "ar": "إسبريسو شيك"
+   },
+   "category": "iced",
+   "price": 33,
+   "description": {
+    "en": "Smooth and creamy espresso shake blending rich coffee with cold milk and ice for a refreshing treat.",
+    "ar": "شيك كريمي ناعم يمزج القهوة الغنية بالحليب."
+   },
+   "image": "img/products/espresso-shake.jpg",
+   "optionGroup": "iced",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "affogato",
+   "name": {
+    "en": "Affogato",
+    "ar": "أفوجاتو"
+   },
+   "category": "iced",
+   "price": 27,
+   "description": {
+    "en": "Vanilla, ice, and espresso.",
+    "ar": "آيس كريم فانيلا مع شوت إسبريسو ساخن."
+   },
+   "image": "img/products/affogato.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "cold-chocolate",
+   "name": {
+    "en": "Cold Chocolate",
+    "ar": "كولد شوكليت"
+   },
+   "category": "iced",
+   "price": 30,
+   "description": {
+    "en": "Beverage made with chocolate, milk, and sugar",
+    "ar": "مشروب شوكولاتة بارد بالحليب."
+   },
+   "image": "img/products/cold-chocolate.jpg",
+   "optionGroup": "iced",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "cloudy-matcha",
+   "name": {
+    "en": "Cloudy Matcha",
+    "ar": "كلاودي ماتشا"
+   },
+   "category": "matcha",
+   "price": 40,
+   "description": {
+    "en": "Matcha is a nutrient rich, versatile tea with a distinctive flavor and a range of health benefits, making it a valuable addition to a balanced diet.",
+    "ar": "ماتشا عضوية غنية بالعناصر الغذائية بنكهة مميزة وقوام سحابي."
+   },
+   "image": "img/products/cloudy-matcha.jpg",
+   "optionGroup": "matcha",
+   "tags": [
+    "popular"
+   ],
+   "available": true
+  },
+  {
+   "id": "vanilla-matcha",
+   "name": {
+    "en": "Vanilla Matcha",
+    "ar": "فانيلا ماتشا"
+   },
+   "category": "matcha",
+   "price": 40,
+   "description": {
+    "en": "Made with Matcha and Vanilla",
+    "ar": "ماتشا عضوية مع فانيلا."
+   },
+   "image": "img/products/vanilla-matcha.jpg",
+   "optionGroup": "matcha",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "strawberry-matcha",
+   "name": {
+    "en": "Strawberry Matcha",
+    "ar": "ماتشا فراولة"
+   },
+   "category": "matcha",
+   "price": 45,
+   "description": {
+    "en": "Fresh strawberries layered with organic matcha. Sweet meets earthy.",
+    "ar": "فراولة طازجة بطبقات مع ماتشا عضوية. الحلو يلتقي بالترابي."
+   },
+   "image": "img/products/strawberry-matcha.jpg",
+   "optionGroup": "matcha",
+   "tags": [
+    "popular"
+   ],
+   "available": true
+  },
+  {
+   "id": "mango-matcha",
+   "name": {
+    "en": "Mango Matcha",
+    "ar": "ماتشا مانجو"
+   },
+   "category": "matcha",
+   "price": 45,
+   "description": {
+    "en": "Made with fresh mango and organic matcha.",
+    "ar": "مانجو طازج مع ماتشا عضوية."
+   },
+   "image": "img/products/mango-matcha.jpg",
+   "optionGroup": "matcha",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "coconut-matcha",
+   "name": {
+    "en": "Coconut Matcha",
+    "ar": "ماتشا جوز الهند"
+   },
+   "category": "matcha",
+   "price": 45,
+   "description": {
+    "en": "Organic matcha meets fresh coconut water. Light, tropical and refreshing.",
+    "ar": "ماتشا عضوية تلتقي بماء جوز الهند الطازج. خفيفة واستوائية."
+   },
+   "image": "img/products/coconut-matcha.jpg",
+   "optionGroup": "matcha",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "monkey-matcha",
+   "name": {
+    "en": "Monkey Matcha",
+    "ar": "مونكي ماتشا"
+   },
+   "category": "matcha",
+   "price": 45,
+   "description": {
+    "en": "Organic matcha blended with fresh banana. Earthy, creamy and naturally sweet.",
+    "ar": "ماتشا عضوية ممزوجة بالموز الطازج. كريمية وحلوة طبيعيًا."
+   },
+   "image": "img/products/monkey-matcha.jpg",
+   "optionGroup": "matcha",
+   "tags": [
+    "new"
+   ],
+   "available": true
+  },
+  {
+   "id": "hibiscus",
+   "name": {
+    "en": "Hibiscus",
+    "ar": "كركديه"
+   },
+   "category": "fresh",
+   "price": 28,
+   "description": {
+    "en": "Chilled hibiscus brew. Tart, floral, and deeply refreshing.",
+    "ar": "كركديه مبرّد. لاذع وزهري ومنعش بعمق."
+   },
+   "image": "img/products/hibiscus.jpg",
+   "optionGroup": "none",
+   "tags": [
+    "popular"
+   ],
+   "available": true
+  },
+  {
+   "id": "strawberry-mojito",
+   "name": {
+    "en": "Strawberry Mojito",
+    "ar": "موهيتو فراولة"
+   },
+   "category": "fresh",
+   "price": 33,
+   "description": {
+    "en": "Fresh strawberries, strawberry purée, and sparkling water. Sweet, fizzy, vibrant.",
+    "ar": "فراولة طازجة وبيوريه فراولة وماء فوّار."
+   },
+   "image": "img/products/strawberry-mojito.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "passion-fruit-mojito",
+   "name": {
+    "en": "Passion Fruit Mojito",
+    "ar": "موهيتو باشن فروت"
+   },
+   "category": "fresh",
+   "price": 33,
+   "description": {
+    "en": "Passion fruit purée, fresh mint, and soda. Tangy, bright, and cooling and refreshing.",
+    "ar": "بيوريه باشن فروت ونعناع طازج وصودا. حامض ومشرق."
+   },
+   "image": "img/products/passion-fruit-mojito.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "watermelon-mojito",
+   "name": {
+    "en": "Watermelon Mojito",
+    "ar": "موهيتو بطيخ"
+   },
+   "category": "fresh",
+   "price": 30,
+   "description": {
+    "en": "محضر من البطيخ والليمون والنعناع ورذاذ ماء الصودا",
+    "ar": "بطيخ وليمون ونعناع ورذاذ ماء الصودا."
+   },
+   "image": "img/products/watermelon-mojito.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "mixed-berries-mojito",
+   "name": {
+    "en": "Mixed Berries Mojito",
+    "ar": "موهيتو توت مشكل"
+   },
+   "category": "fresh",
+   "price": 30,
+   "description": {
+    "en": "Made with fresh berries",
+    "ar": "محضّر من التوت الطازج."
+   },
+   "image": "img/products/mixed-berries-mojito.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "rush-hour-berry",
+   "name": {
+    "en": "Rush Hour Berry Tea",
+    "ar": "شاي راش آور بالتوت"
+   },
+   "category": "fresh",
+   "price": 30,
+   "description": {
+    "en": "Combination of Garden And Luxurious Forest Berries",
+    "ar": "مزيج من توت الحدائق وتوت الغابات الفاخر."
+   },
+   "image": "img/products/rush-hour-berry.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "acai-mango",
+   "name": {
+    "en": "Acai Mango",
+    "ar": "أساي مانجو"
+   },
+   "category": "fresh",
+   "price": 40,
+   "description": {
+    "en": "Refreshing blend of tropical acai berries and sweet mango for your day.",
+    "ar": "مزيج منعش من توت الأساي الاستوائي والمانجو الحلو."
+   },
+   "image": "img/products/acai-mango.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "strawberry-milkshake",
+   "name": {
+    "en": "Strawberry Milkshake",
+    "ar": "ميلك شيك فراولة"
+   },
+   "category": "shakes",
+   "price": 25.5,
+   "description": {
+    "en": "Fresh strawberries blended with strawberry ice cream. Thick, cold and full of fruit.",
+    "ar": "فراولة طازجة ممزوجة بآيس كريم الفراولة. كثيف وكريمي."
+   },
+   "image": "img/products/strawberry-milkshake.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "pistachio-milkshake",
+   "name": {
+    "en": "Pistachio Milkshake",
+    "ar": "ميلك شيك فستق"
+   },
+   "category": "shakes",
+   "price": 30,
+   "description": {
+    "en": "Pistachio ice cream, fresh milk, and pistachio sauce. Nutty, creamy and unashamedly indulgent.",
+    "ar": "آيس كريم فستق وحليب طازج وصوص فستق."
+   },
+   "image": "img/products/pistachio-milkshake.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "chocolate-milkshake",
+   "name": {
+    "en": "Chocolate Milkshake",
+    "ar": "ميلك شيك شوكولاتة"
+   },
+   "category": "shakes",
+   "price": 30,
+   "description": {
+    "en": "Chocolate ice cream, fresh milk and chocolate sauce. Rich, cold and hits every time.",
+    "ar": "آيس كريم شوكولاتة وحليب طازج وصوص شوكولاتة."
+   },
+   "image": "img/products/chocolate-milkshake.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "acai-smoothie",
+   "name": {
+    "en": "Acai Smoothie",
+    "ar": "أساي سموذي"
+   },
+   "category": "shakes",
+   "price": 35,
+   "description": {
+    "en": "Acai, banana, peanut butter, fresh milk, blueberries, strawberries. Rich, satisfying and full of flavor.",
+    "ar": "أساي وموز وزبدة فول سوداني وحليب طازج وتوت وفراولة."
+   },
+   "image": "img/products/acai-smoothie.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "acai-bowl",
+   "name": {
+    "en": "Acai Bowl",
+    "ar": "أساي بول"
+   },
+   "category": "shakes",
+   "price": 45,
+   "description": {
+    "en": "Made With Acai, Fresh Banana, Strawberry, Blueberry, and Peanut Butter",
+    "ar": "أساي مع موز وفراولة وتوت أزرق وزبدة الفول السوداني."
+   },
+   "image": "img/products/acai-bowl.jpg",
+   "optionGroup": "none",
+   "tags": [
+    "popular"
+   ],
+   "available": true
+  },
+  {
+   "id": "pistachio-banana-pudding",
+   "name": {
+    "en": "Pistachio Banana Pudding",
+    "ar": "بودينغ الموز بالفستق"
+   },
+   "category": "dessert",
+   "price": 38,
+   "description": {
+    "en": "Pistachio banana pudding is a sweet, creamy dessert made with layers of banana slices, pistachio-flavored pudding, whipped cream, and cookies like vanilla wafers. The pudding is smooth and rich, the bananas add natural sweetness, and the pistachios give it a light nutty taste. It's soft, sweet, and perfect for a cool, tasty treat.",
+    "ar": "حلوى كريمية حلوة بطبقات من بودينغ الفستق وشرائح الموز."
+   },
+   "image": "img/products/pistachio-banana-pudding.jpg",
+   "optionGroup": "none",
+   "tags": [
+    "popular"
+   ],
+   "available": true
+  },
+  {
+   "id": "chocolate-banana-pudding",
+   "name": {
+    "en": "Chocolate Banana Pudding",
+    "ar": "بودينغ الموز بالشوكولاتة"
+   },
+   "category": "dessert",
+   "price": 38,
+   "description": {
+    "en": "A sweet creamy treat. With layers of chocolate pudding and soft banana slices. Topped with fluffy whipped cream. Chilled, smooth and delicious.",
+    "ar": "طبقات من بودينغ الشوكولاتة وشرائح الموز الطرية."
+   },
+   "image": "img/products/chocolate-banana-pudding.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "peanut-butter-banana-pudding",
+   "name": {
+    "en": "Peanut Butter Banana Pudding",
+    "ar": "بودينغ الموز بزبدة الفول السوداني"
+   },
+   "category": "dessert",
+   "price": 38,
+   "description": {
+    "en": "Peanut butter banana pudding is a smooth and creamy dessert. It contains layers of peanut butter pudding, fresh banana slices, and cookies. It's topped with smooth whipped cream. The combination of peanut butter and banana makes it sweet and rich, and every bite is smooth and delicious.",
+    "ar": "حلوى ناعمة وكريمية بطبقات من بودينغ زبدة الفول السوداني والموز."
+   },
+   "image": "img/products/peanut-butter-banana-pudding.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "london-cake",
+   "name": {
+    "en": "London Cake",
+    "ar": "كيكة لندن"
+   },
+   "category": "dessert",
+   "price": 40,
+   "description": {
+    "en": "A delightful London cake featuring layers of moist sponge cake with rich chocolate frosting and a smooth ganache finish",
+    "ar": "طبقات من الإسفنج الرطب بكريمة ناعمة."
+   },
+   "image": "img/products/london-cake.jpg",
+   "optionGroup": "none",
+   "tags": [
+    "new"
+   ],
+   "available": true
+  },
+  {
+   "id": "asceed-saffron-cake",
+   "name": {
+    "en": "Asceed Saffron Cake",
+    "ar": "عصيدة بالزعفران"
+   },
+   "category": "dessert",
+   "price": 40,
+   "description": {
+    "en": "A moist, golden sponge infused with the world’s finest saffron, creating a delicate floral aroma and a rich, royal finish.",
+    "ar": "إسفنج ذهبي رطب منقوع بأجود أنواع الزعفران."
+   },
+   "image": "img/products/asceed-saffron-cake.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "asceed",
+   "name": {
+    "en": "Asceed",
+    "ar": "عصيدة تقليدية"
+   },
+   "category": "dessert",
+   "price": 38,
+   "description": {
+    "en": "Traditional Asceed. Warm, hearty, and rooted in heritage.",
+    "ar": "عصيدة تقليدية دافئة ومشبعة ومتجذّرة في التراث."
+   },
+   "image": "img/products/asceed.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "overload-cookies",
+   "name": {
+    "en": "Over Load Cookies",
+    "ar": "أوفرلود كوكيز"
+   },
+   "category": "dessert",
+   "price": 45,
+   "description": {
+    "en": "Made With Chocolate, Kinder, and Nutella favar",
+    "ar": "محضّر بالشوكولاتة والكيندر والنوتيلا."
+   },
+   "image": "img/products/overload-cookies.jpg",
+   "optionGroup": "none",
+   "tags": [
+    "popular"
+   ],
+   "available": true
+  },
+  {
+   "id": "kinder-cookies",
+   "name": {
+    "en": "Kinder Cookies",
+    "ar": "كوكيز كيندر"
+   },
+   "category": "dessert",
+   "price": 19,
+   "description": {
+    "en": "Buttery cookies loaded with Kinder chocolate. Milky, sweet, and impossible to share.",
+    "ar": "كوكيز زبدة محمّل بشوكولاتة كيندر."
+   },
+   "image": "img/products/kinder-cookies.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "nutella-cookies",
+   "name": {
+    "en": "Nutella Cookies",
+    "ar": "كوكيز نوتيلا"
+   },
+   "category": "dessert",
+   "price": 20,
+   "description": {
+    "en": "Delightful nutella cookies with a soft, chewy center and crispy edges. Rich chocolate hazelnut flavor in every bite, perfect for any occasion.",
+    "ar": "كوكيز نوتيلا بقلب طري ومضغي وحواف مقرمشة."
+   },
+   "image": "img/products/nutella-cookies.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "brookies",
+   "name": {
+    "en": "Brookies",
+    "ar": "بروكيز"
+   },
+   "category": "dessert",
+   "price": 17,
+   "description": {
+    "en": "Half brownie, half cookie. Loaded with Kinder and dark chocolate. Chewy, fudgy, and dangerously good.",
+    "ar": "نصف براوني ونصف كوكيز. محمّل بالكيندر والشوكولاتة الداكنة."
+   },
+   "image": "img/products/brookies.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "cheese-croissant",
+   "name": {
+    "en": "Cheese Croissant",
+    "ar": "كرواسون جبن"
+   },
+   "category": "bakery",
+   "price": 20,
+   "description": {
+    "en": "Buttery pastry filled with creamy melted cheese and baked to golden perfection",
+    "ar": "عجينة زبدية محشوة بجبن كريمي ذائب ومخبوزة حتى تذهّب."
+   },
+   "image": "img/products/cheese-croissant.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "zaatar-croissant",
+   "name": {
+    "en": "Zaatar Croissant",
+    "ar": "كرواسون زعتر"
+   },
+   "category": "bakery",
+   "price": 16,
+   "description": {
+    "en": "A blend of herbs and spices.",
+    "ar": "مزيج من الأعشاب والبهارات."
+   },
+   "image": "img/products/zaatar-croissant.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "double-chocolate-croissant",
+   "name": {
+    "en": "Double Chocolate Croissant",
+    "ar": "كرواسون دبل شوكليت"
+   },
+   "category": "bakery",
+   "price": 20,
+   "description": {
+    "en": "",
+    "ar": "كرواسون محشو بالشوكولاتة المزدوجة."
+   },
+   "image": "img/products/double-chocolate-croissant.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "hibiscus-bottle",
+   "name": {
+    "en": "Hibiscus Bottle",
+    "ar": "عبوة كركديه"
+   },
+   "category": "bottles",
+   "price": 25,
+   "description": {
+    "en": "Cold-brewed hibiscus, bottled. Tart, floral, ready to go.",
+    "ar": "كركديه مبرّد في عبوة، جاهز للمشاركة."
+   },
+   "image": "img/products/hibiscus-bottle.jpg",
+   "optionGroup": "bottle",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "v60-bottle",
+   "name": {
+    "en": "V60 Bottle",
+    "ar": "عبوة V60"
+   },
+   "category": "bottles",
+   "price": 25,
+   "description": {
+    "en": "Iced V60 is a light, clean and crisp iced coffee. We brew it hot over ice, which cools it down quickly and locks in the fresh flavors. It’s smooth, refreshing and brings out the bright, fruity notes of the coffee perfect for a hot day",
+    "ar": "V60 بارد خفيف ونظيف في عبوة. من بن إثيوبي."
+   },
+   "image": "img/products/v60-bottle.jpg",
+   "optionGroup": "bottle",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "spanish-latte-bottle",
+   "name": {
+    "en": "Spanish Latte Bottle",
+    "ar": "عبوة سبانش لاتيه"
+   },
+   "category": "bottles",
+   "price": 25,
+   "description": {
+    "en": "A small bottle of Spanish Latte, offering a rich and creamy blend of coffee with a smooth and sweet flavor, perfect for a quick and enjoyable coffee experience, Espresso, fresh milk, and condensed milk. Bottled, rich, sweet, and ready when you are",
+    "ar": "مزيجنا المميز من الإسبريسو القوي والحليب المكثّف المخملي."
+   },
+   "image": "img/products/spanish-latte-bottle.jpg",
+   "optionGroup": "bottle",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "summer-favorite-duo",
+   "name": {
+    "en": "Summer Favorite Duo",
+    "ar": "ثنائي الصيف المفضّل"
+   },
+   "category": "bundles",
+   "price": 65,
+   "description": {
+    "en": "Beat the heat with our refreshing Summer Favorite Duo featuring a smooth iced sweet Spanish latte paired with a bold iced V60",
+    "ar": "اهزم الحر مع ثنائي الصيف المنعش."
+   },
+   "image": "img/products/summer-favorite-duo.jpg",
+   "optionGroup": "none",
+   "tags": [
+    "new"
+   ],
+   "available": true
+  },
+  {
+   "id": "signature-pair",
+   "name": {
+    "en": "Signature Pair",
+    "ar": "الثنائي المميز"
+   },
+   "category": "bundles",
+   "price": 79,
+   "description": {
+    "en": "V60 iced coffee, pure and complex in flavor. Overloaded cookies, rich and drizzled with sauce. 2 Favorites, in perfect harmony like no other.",
+    "ar": "V60 بارد نقي ومركّب النكهة مع أوفرلود كوكيز."
+   },
+   "image": "img/products/signature-pair.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "social-box",
+   "name": {
+    "en": "The Social Box",
+    "ar": "سوشال بوكس"
+   },
+   "category": "bundles",
+   "price": 75,
+   "description": {
+    "en": "3 bottles, any mix. pick your favorites from crisp hibiscus, Spanish latte, and V60 coffee. Served cold.",
+    "ar": "3 عبوات بأي مزيج تختاره من الكركديه وV60 والسبانش لاتيه."
+   },
+   "image": "img/products/social-box.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "still-water",
+   "name": {
+    "en": "Still Water",
+    "ar": "ماء"
+   },
+   "category": "water",
+   "price": 7,
+   "description": {
+    "en": "Mineral water",
+    "ar": "ماء معدني."
+   },
+   "image": "img/products/still-water.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  },
+  {
+   "id": "sparkling-water",
+   "name": {
+    "en": "Sparkling Water",
+    "ar": "ماء فوّار"
+   },
+   "category": "water",
+   "price": 9,
+   "description": {
+    "en": "Sparkling Mineral Water",
+    "ar": "ماء معدني فوّار."
+   },
+   "image": "img/products/sparkling-water.jpg",
+   "optionGroup": "none",
+   "tags": [],
+   "available": true
+  }
+ ]
+}

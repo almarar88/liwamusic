@@ -1,0 +1,14 @@
+{
+  "appId": "ae.here.cafe",
+  "appName": "Here",
+  "webDir": "www",
+  "server": {
+    "url": "https://REPLACE_WITH_SERVER_URL",
+    "cleartext": false,
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#f6f1ea"
+  }
+}

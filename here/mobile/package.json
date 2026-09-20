@@ -1,0 +1,20 @@
+{
+  "name": "here-mobile",
+  "version": "0.1.0",
+  "description": "Here — غلاف أندرويد (Capacitor) لتطبيق طلبات كوفي Here",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare:www": "node scripts/prepare.mjs",
+    "add:android": "cap add android",
+    "sync": "cap sync android",
+    "open:android": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/core": "^6.2.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0"
+  }
+}

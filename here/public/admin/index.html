@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Here — شاشة الكوفي</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="../icons/favicon-64.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Courier+Prime&display=swap">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+<div id="login" class="login">
+  <div class="login-box">
+    <div class="wordmark">here</div>
+    <div class="muted">شاشة الكوفي</div>
+    <input id="pin" type="password" inputmode="numeric" placeholder="رمز الدخول" autofocus>
+    <button id="pinBtn" class="btn">دخول</button>
+    <div id="pinErr" class="err hidden"></div>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <header class="bar">
+    <div class="brand"><span class="wordmark">here</span><span class="muted small">شاشة الكوفي</span></div>
+    <nav class="tabs" id="tabs">
+      <button data-tab="orders" class="on">الطلبات <span class="pill" id="openCount">0</span></button>
+      <button data-tab="history">السجل</button>
+      <button data-tab="products">المنتجات</button>
+      <button data-tab="members">العضويات</button>
+      <button data-tab="stats">الإحصائيات</button>
+    </nav>
+    <div class="bar-actions">
+      <span id="conn" class="conn off" title="حالة الاتصال">●</span>
+      <button id="soundBtn" class="ghost" title="تفعيل الصوت">🔔</button>
+      <button id="logoutBtn" class="ghost">خروج</button>
+    </div>
+  </header>
+  <main id="main"></main>
+</div>
+<div id="toast" class="toast hidden"></div>
+<script src="admin.js"></script>
+</body>
+</html>
