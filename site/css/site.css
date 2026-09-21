@@ -19,7 +19,7 @@
   --r-pill: 999px;
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --font: "Cabinet Grotesk", "IBM Plex Sans Arabic", "Segoe UI", system-ui, sans-serif;
+  --font: "Outfit", "IBM Plex Sans Arabic", "Segoe UI", system-ui, sans-serif;
   --pad-section: clamp(6rem, 12vw, 12rem);
   --gutter: clamp(16px, 4vw, 48px);
   --wrap: 1280px;
@@ -116,7 +116,7 @@ main, footer, .nav { position: relative; z-index: 1; }
 .hero-copy { grid-column: 1 / -1; max-width: none; }
 .hero-lower { grid-column: 1; align-self: start; }
 .hero-title {
-  font-size: clamp(2.1rem, 5.1vw, 5.1rem); line-height: 1.18; font-weight: 700; letter-spacing: -0.01em;
+  font-size: clamp(1.78rem, 5.1vw, 5.1rem); line-height: 1.18; font-weight: 700; letter-spacing: -0.01em;
   text-wrap: balance; width: 100%; max-width: none;
 }
 .hero-title .w { display: inline-block; will-change: transform, opacity; }
@@ -308,11 +308,17 @@ main, footer, .nav { position: relative; z-index: 1; }
 
 @media (max-width: 720px) {
   .nav { gap: 14px; padding-inline-start: 16px; }
+  .hero-title { letter-spacing: -0.02em; }
+  .hero-title .inline-pill { width: 1.5em; height: 0.72em; margin-inline: 0.06em 0.2em; }
   .nav-links { display: none; }
   .bento { grid-template-columns: 1fr; grid-auto-rows: auto; }
   .card-a, .card-b, .card-c, .card-d { grid-column: span 1; grid-row: span 1; }
   .hero-actions .btn { width: 100%; }
   .cta-actions .btn { width: 100%; }
+}
+
+@media (max-width: 380px) {
+  .hero-title { font-size: 1.62rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
