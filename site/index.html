@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LiwaMusic</title>
+<meta name="description" content="LiwaMusic: مشغّل وفهرس موسيقى ذكي لويندوز والأندرويد، يشغّل مكتبتك من قرصك أو من Google Drive مباشرة بلا تنزيل." />
+<meta property="og:title" content="LiwaMusic" />
+<meta property="og:description" content="مكتبتك الموسيقية من قرصك أو من Google Drive، بمشغّل يليق بها." />
+<meta property="og:image" content="assets/home.png" />
+<meta name="theme-color" content="#07070c" />
+<link rel="icon" href="assets/icon.png" type="image/png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@500,700,800&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" />
+<link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+
+<div class="ambient" aria-hidden="true">
+  <i class="orb orb-a"></i>
+  <i class="orb orb-b"></i>
+  <i class="orb orb-c"></i>
+  <i class="grain"></i>
+</div>
+
+<nav class="nav" id="nav" aria-label="التنقل الرئيسي">
+  <a class="nav-brand" href="#top" aria-label="LiwaMusic">
+    <span class="nav-mark"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 3v10.6A4 4 0 1 0 14 17V7h5V3z" fill="currentColor"/></svg></span>
+    <span>Liwa<b>Music</b></span>
+  </a>
+  <div class="nav-links">
+    <a href="#features">المميزات</a>
+    <a href="#platforms">المنصّات</a>
+    <a href="#privacy">الخصوصية</a>
+    <a href="https://github.com/almarar88/liwamusic" target="_blank" rel="noopener">GitHub</a>
+  </div>
+  <a class="btn btn-solid btn-sm" href="#download">تحميل</a>
+</nav>
+
+<main class="page" id="top">
+
+  <section class="hero" id="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <h1 class="hero-title">
+          <span class="w">مكتبتك</span>
+          <span class="w">الموسيقية،</span>
+          <span class="w">من</span>
+          <span class="w">قرصك</span>
+          <span class="w">أو</span>
+          <span class="w">من</span>
+          <span class="w inline-pill" style="background-image:url(assets/home.png)" aria-hidden="true"></span>
+          <span class="w">درايف،</span>
+          <span class="w">بمشغّل</span>
+          <span class="w">يليق</span>
+          <span class="w">بها.</span>
+        </h1>
+      </div>
+
+      <div class="hero-lower">
+        <p class="hero-lede">
+          ارفع مجلد أغانيك فيُفهرسه LiwaMusic ويشغّله بمحرّك صوتي كامل. أغلفة وكلمات متزامنة من الإنترنت،
+          ومزامنة تقييماتك وقوائمك بين ويندوز وهاتفك عبر Google Drive. مجاني ومفتوح المصدر، بلا حساب وبلا خادم.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-solid" href="https://github.com/almarar88/liwamusic/releases/download/v1.1.1/LiwaMusic-Setup-1.1.1.exe">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3 5.5l7.5-1v7H3zM12 4.3L21 3v8.5h-9zM3 12.5h7.5v7L3 18.5zM12 12.5h9V21l-9-1.3z" fill="currentColor"/></svg>
+            <span>تحميل لويندوز</span>
+          </a>
+          <a class="btn btn-glass" href="https://github.com/almarar88/liwamusic/releases/download/android-v1.2.0/LiwaMusic.apk">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M7 8.5a5 5 0 0110 0v8a2 2 0 01-2 2H9a2 2 0 01-2-2zM5 9v6M19 9v6M9 18.5V21M15 18.5V21M8 8h8M9.5 5.5l-1-2M14.5 5.5l1-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <span>نسخة الأندرويد</span>
+          </a>
+        </div>
+      </div>
+
+      <figure class="hero-art">
+        <div class="hero-shot">
+          <img src="assets/home.png" width="1440" height="900" alt="الصفحة الرئيسية في LiwaMusic على ويندوز، بالمظهر الداكن والتلوين المستخرج من الغلاف" />
+        </div>
+        <div class="hero-shot hero-shot-phone">
+          <img src="assets/m-04-player.png" width="412" height="915" alt="مشغّل LiwaMusic على الهاتف" />
+        </div>
+      </figure>
+    </div>
+  </section>
+
+  <section class="marquee" aria-label="الصيغ والمصادر المدعومة">
+    <div class="marquee-track">
+      <div class="marquee-row">
+        <span>MP3</span><i></i><span>FLAC</span><i></i><span>M4A</span><i></i><span>WAV</span><i></i><span>OGG</span><i></i><span>OPUS</span><i></i><span>AIFF</span><i></i><span>WMA</span><i></i><span>APE</span><i></i><span>Google Drive</span><i></i><span>LRCLIB</span><i></i><span>MusicBrainz</span><i></i><span>iTunes Artwork</span><i></i><span>M3U8</span><i></i>
+      </div>
+      <div class="marquee-row" aria-hidden="true">
+        <span>MP3</span><i></i><span>FLAC</span><i></i><span>M4A</span><i></i><span>WAV</span><i></i><span>OGG</span><i></i><span>OPUS</span><i></i><span>AIFF</span><i></i><span>WMA</span><i></i><span>APE</span><i></i><span>Google Drive</span><i></i><span>LRCLIB</span><i></i><span>MusicBrainz</span><i></i><span>iTunes Artwork</span><i></i><span>M3U8</span><i></i>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="features">
+    <div class="wrap">
+      <header class="section-head">
+        <h2>أربعة أشياء لن تجدها معًا في مشغّل آخر.</h2>
+        <p>فهرسة ذكية، بثّ من درايف، كلمات متزامنة، ومحرّك صوت حقيقي. كلّها محليًا على جهازك.</p>
+      </header>
+
+      <div class="bento">
+        <article class="card card-a">
+          <div class="card-body">
+            <h3>شغّل من Google Drive بلا تنزيل.</h3>
+            <p>يبثّ الأغنية مباشرة مع تنقّل داخلها، ويقرأ الوسوم والغلاف بتنزيل 512 كيلوبايت فقط من كل ملف. ما تعدّله على جهاز يظهر على الآخر.</p>
+          </div>
+          <div class="card-media">
+            <img src="assets/tracks.png" width="1440" height="900" alt="قائمة كل الأغاني مع شارة مصدر درايف" loading="lazy" />
+          </div>
+        </article>
+
+        <article class="card card-b">
+          <div class="card-body">
+            <h3>كلمات متزامنة سطرًا بسطر.</h3>
+            <p>من LRCLIB أو من ملف .lrc بجانب الأغنية. السطر الحالي مضاء، والنقر على أي سطر يقفز إليه.</p>
+          </div>
+          <div class="card-media card-media-side">
+            <img src="assets/m-05-lyrics.png" width="412" height="915" alt="الكلمات المتزامنة مع تمييز السطر الجاري" loading="lazy" />
+          </div>
+        </article>
+
+        <article class="card card-c">
+          <div class="card-body">
+            <h3>معادل بعشرة نطاقات.</h3>
+            <p>أحد عشر قالبًا جاهزًا، تضخيم مسبق، وتطبيع للصوت بين الأغاني.</p>
+          </div>
+          <div class="eq" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          </div>
+        </article>
+
+        <article class="card card-d">
+          <div class="card-body">
+            <h3>ألوان من الغلاف.</h3>
+            <p>الواجهة تُلوَّن من غلاف الأغنية الجارية، فتتبدّل مع كل مقطع.</p>
+          </div>
+          <div class="swatch" aria-hidden="true"></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section split" id="engine">
+    <div class="wrap split-grid">
+      <div class="split-pin" id="splitPin">
+        <h2>كل ما يفعله مشغّل جيد، بلا خادم في الوسط.</h2>
+        <p>أكثر من ستين ميزة، تعمل كلّها بلا إنترنت. الشبكة إضافة لا شرط.</p>
+        <div class="split-shot">
+          <img src="assets/stats.png" width="1440" height="900" alt="صفحة الإحصاءات" loading="lazy" />
+        </div>
+      </div>
+      <ul class="split-list">
+        <li class="split-item">
+          <h3>تلاشٍ متقاطع حتى 12 ثانية.</h3>
+          <p>ديكان صوتيان مستقلان وتحميل مسبق للأغنية التالية، فلا صمت بين المقاطع.</p>
+        </li>
+        <li class="split-item">
+          <h3>مزامنة بين أجهزتك بالطوابع الزمنية.</h3>
+          <p>التقييمات والمفضلة والقوائم والتعديلات تُدمج عنصرًا عنصرًا. لا يضيع تعديل جهاز إذا زامن الآخر بعده.</p>
+        </li>
+        <li class="split-item">
+          <h3>الأغلفة الناقصة تُجلب وحدها.</h3>
+          <p>بدقة 600×600 من iTunes، وتُطبَّق على الألبوم كاملًا. أو ضع غلافك من أي صورة على جهازك.</p>
+        </li>
+        <li class="split-item">
+          <h3>حفظ للاستماع دون إنترنت.</h3>
+          <p>أغنية واحدة أو قائمة أو المكتبة كلها، مع مدير تخزين يعرض الحجم ويُفرّغ بضغطة.</p>
+        </li>
+        <li class="split-item">
+          <h3>عشرات الآلاف من الأغاني بسلاسة.</h3>
+          <p>قائمة افتراضية ترسم الصفوف المرئية فقط، وبحث فوري يفهم العربية ويتجاهل التشكيل.</p>
+        </li>
+        <li class="split-item">
+          <h3>ذكاء اصطناعي اختياري، ومغلق افتراضيًا.</h3>
+          <p>قوائم من وصف بلغتك وبحث دلالي وراديو مشابه، بمفتاحك أنت. لا يُرسل أي ملف صوتي أبدًا.</p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section" id="platforms">
+    <div class="wrap">
+      <header class="section-head">
+        <h2>على الكمبيوتر وفي جيبك، بنفس المكتبة.</h2>
+        <p>نسخة ويندوز كاملة، وتطبيق أندرويد يشغّل مكتبة درايف نفسها ويتزامن معها تلقائيًا.</p>
+      </header>
+
+      <div class="accordion" id="accordion">
+        <div class="slice is-open">
+          <img class="slice-img" src="assets/light-playlists.png" alt="" loading="lazy" aria-hidden="true" />
+          <div class="slice-label"><span>ويندوز</span></div>
+          <div class="slice-body">
+            <h3>ويندوز 10 و11</h3>
+            <p>مثبّت واحد لا يحتاج صلاحيات مدير. مشغّل مصغّر فوق النوافذ، مفاتيح وسائط، وتقدّم على أيقونة شريط المهام.</p>
+            <a class="link" href="https://github.com/almarar88/liwamusic/releases/download/v1.1.1/LiwaMusic-Setup-1.1.1.exe">تحميل المثبّت</a>
+          </div>
+        </div>
+        <div class="slice">
+          <img class="slice-img" src="assets/m-06-immersive.png" alt="" loading="lazy" aria-hidden="true" />
+          <div class="slice-label"><span>أندرويد</span></div>
+          <div class="slice-body">
+            <h3>أندرويد 5.1 فأحدث</h3>
+            <p>واجهة زجاجية، وضع غامر، تحكّم من شاشة القفل، وشاشة نشاط بهدف استماع يومي.</p>
+            <a class="link" href="https://github.com/almarar88/liwamusic/releases/download/android-v1.2.0/LiwaMusic.apk">تحميل APK</a>
+          </div>
+        </div>
+        <div class="slice">
+          <img class="slice-img" src="assets/m-03-home-playing.png" alt="" loading="lazy" aria-hidden="true" />
+          <div class="slice-label"><span>المزامنة</span></div>
+          <div class="slice-body">
+            <h3>ملف واحد مخفي في درايف</h3>
+            <p>الصلاحيات قراءة فقط ومجلد التطبيق. لا يستطيع LiwaMusic تعديل أو حذف أي ملف من ملفاتك.</p>
+            <a class="link" href="https://github.com/almarar88/liwamusic#readme" target="_blank" rel="noopener">كيف تربط حسابك</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section manifesto" id="privacy">
+    <div class="wrap">
+      <p class="scrub" id="scrub">
+        لا خادم ولا حساب ولا تتبّع. كل بياناتك في مجلد على جهازك. طلبات الإنترنت تذهب مباشرة من جهازك إلى مصادرها، ويمكنك إطفاء كل واحدة منها. الذكاء الاصطناعي لا يرى ملفًا صوتيًا واحدًا، ولا يعمل أصلًا ما لم تفعّله بنفسك.
+      </p>
+    </div>
+  </section>
+
+  <section class="section cta" id="download">
+    <div class="cta-bg" aria-hidden="true"></div>
+    <div class="wrap cta-inner">
+      <h2>نزّل LiwaMusic اليوم.</h2>
+      <p>مجاني، مفتوح المصدر برخصة MIT، ويعمل بالكامل بلا إنترنت.</p>
+      <div class="cta-actions">
+        <a class="btn btn-solid btn-lg" href="https://github.com/almarar88/liwamusic/releases/download/v1.1.1/LiwaMusic-Setup-1.1.1.exe">
+          <span>ويندوز 64-بت</span>
+          <small>الإصدار 1.1.1 · نحو 90 ميجابايت</small>
+        </a>
+        <a class="btn btn-glass btn-lg" href="https://github.com/almarar88/liwamusic/releases/download/android-v1.2.0/LiwaMusic.apk">
+          <span>أندرويد APK</span>
+          <small>الإصدار 1.2.0 · 3 ميجابايت</small>
+        </a>
+      </div>
+      <p class="cta-note">
+        إن تعذّر التحميل، استخدم <a href="https://cdn.jsdelivr.net/gh/almarar88/liwamusic@main/download/LiwaMusic.apk">مرآة jsDelivr</a>
+        أو تصفّح <a href="https://github.com/almarar88/liwamusic/releases/latest">آخر إصدار على GitHub</a>.
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-grid">
+    <div class="footer-brand">
+      <span class="nav-mark"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 3v10.6A4 4 0 1 0 14 17V7h5V3z" fill="currentColor"/></svg></span>
+      <span>Liwa<b>Music</b></span>
+    </div>
+    <nav class="footer-links" aria-label="روابط">
+      <a href="https://github.com/almarar88/liwamusic" target="_blank" rel="noopener">المستودع</a>
+      <a href="https://github.com/almarar88/liwamusic/releases" target="_blank" rel="noopener">الإصدارات</a>
+      <a href="#privacy">الخصوصية</a>
+      <a href="https://github.com/almarar88/liwamusic/blob/main/LICENSE" target="_blank" rel="noopener">رخصة MIT</a>
+    </nav>
+    <p class="footer-note">تم إنشاؤه عن طريق <b>LiwaMusic</b></p>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>
