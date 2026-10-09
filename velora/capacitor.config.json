@@ -1,0 +1,10 @@
+{
+  "appId": "com.velora.demo",
+  "appName": "Velora",
+  "webDir": "www",
+  "android": { "allowMixedContent": false },
+  "server": { "androidScheme": "https" },
+  "plugins": {
+    "StatusBar": { "style": "DARK", "backgroundColor": "#070b16", "overlaysWebView": false }
+  }
+}

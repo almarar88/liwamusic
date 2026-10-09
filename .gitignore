@@ -7,3 +7,6 @@ mobile/node_modules/
 mobile/android/
 mobile/*.apk
 !download/LiwaMusic.apk
+velora/node_modules/
+velora/android/
+velora/*.apk

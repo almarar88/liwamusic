@@ -1,0 +1,58 @@
+name: Build Velora (banking demo APK)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "velora-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: velora
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - run: npm install --no-audit --no-fund
+      - name: Self-test
+        run: node scripts/selftest.mjs
+      - run: npx cap add android
+      - run: npx cap sync android
+      - run: node scripts/patch-android.mjs android
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+      - run: pip install pillow && python3 scripts/make-icons.py android/app/src/main/res
+      - name: Build
+        run: cd android && chmod +x gradlew && ./gradlew assembleRelease --no-daemon
+      - name: Sign
+        run: |
+          set -e
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          UNSIGNED=$(find android/app/build/outputs/apk/release -name "*.apk" | head -1)
+          "$BT/zipalign" -p -f 4 "$UNSIGNED" aligned.apk
+          "$BT/apksigner" sign --ks signing/velora.jks --ks-pass pass:velora-demo --ks-key-alias velora \
+            --key-pass pass:velora-demo --out Velora.apk aligned.apk
+          "$BT/apksigner" verify Velora.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Velora-APK
+          path: velora/Velora.apk
+          if-no-files-found: error
+      - if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: velora/Velora.apk
+          name: Velora ${{ github.ref_name }}
+          body: Velora banking simulator APK. Demo only — not a real bank; no real money moves.
