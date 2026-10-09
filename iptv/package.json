@@ -1,6 +1,6 @@
 {
   "name": "liwaiptv",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "LiwaIPTV — مشغل اشتراكات IPTV (Xtream · M3U · Stalker) لأندرويد وأندرويد TV",
   "private": true,
   "scripts": {

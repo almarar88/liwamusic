@@ -24,7 +24,7 @@ export function toast(msg, ms = 2600) {
 /** غلاف/شعار: الأحرف الأولى بلون ثابت تحت الصورة؛ إن فشلت الصورة تختفي فيظهر البديل. */
 export function art(src, name, cls = '') {
   const hue = parseInt(hash(String(name || '?')), 36) % 360;
-  const initials = String(name || '?').replace(/^[^\p{L}\p{N}]+/u, '').split(/\s+/).slice(0, 2).map((w) => w[0] || '').join('').toUpperCase() || '?';
+  const initials = /\bcover\b/.test(cls) ? String(name || '?') : String(name || '?').replace(/^[^\p{L}\p{N}]+/u, '').split(/\s+/).slice(0, 2).map((w) => w[0] || '').join('').toUpperCase() || '?';
   const img = src ? `<img src="${esc(src)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()" />` : '';
   return `<div class="art ${cls}" style="--h:${hue}"><span>${esc(initials)}</span>${img}</div>`;
 }
@@ -160,10 +160,11 @@ export function lazyEach(root, selector, fn, { concurrency = 3 } = {}) {
 
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([type=hidden]):not([type=file]), select, [tabindex]:not([tabindex="-1"])';
 
+/** قابل للتركيز فعلًا: ظاهر وله مساحة (قد يكون خارج الشاشة فيُمرَّر إليه). */
 function visible(el) {
   if (el.closest('[hidden]')) return false;
   const r = el.getBoundingClientRect();
-  return r.width > 0 && r.height > 0 && r.bottom > 0 && r.right > 0 && r.top < innerHeight && r.left < innerWidth;
+  return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden';
 }
 
 /** يختار أقرب عنصر في اتجاه السهم داخل الطبقة الظاهرة الأعلى. */
@@ -189,7 +190,14 @@ export function moveFocus(dir, scope) {
   }
   if (best) {
     best.focus({ preventScroll: true });
-    best.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+    const sec = (dir === 'up' || dir === 'down') && document.body.classList.contains('tv') && best.closest('.row-sec');
+    if (sec) {
+      // التلفاز: الصف المحدد يصعد كاملًا تحت اللوحة الثابتة
+      best.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      sec.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    } else {
+      best.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+    }
     return true;
   }
   return false;

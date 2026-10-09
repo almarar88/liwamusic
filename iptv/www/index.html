@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
 <meta name="color-scheme" content="dark" />
-<meta name="theme-color" content="#07080d" />
+<meta name="theme-color" content="#000000" />
 <title>LiwaIPTV</title>
 <link rel="stylesheet" href="css/app.css" />
 </head>
@@ -58,7 +58,7 @@
 <!-- ————————————————— إضافة اشتراك (أول تشغيل) -->
 <section id="welcome" hidden>
   <div class="welcome">
-    <div class="brand-big"><svg><use href="#i-logo"/></svg><h1>Liwa<span>IPTV</span></h1></div>
+    <div class="brand-big"><span class="wordmark xl">LIWA</span><span class="brand-sub">IPTV</span></div>
     <p class="muted">أضف اشتراكك وشاهد القنوات والأفلام والمسلسلات بصورها وتصنيفاتها، بمشغّل متطور وترجمة.</p>
     <div class="card add-form" id="addForm">
       <div class="seg" role="tablist" id="addType">
@@ -95,22 +95,46 @@
 </section>
 
 <!-- ————————————————— التطبيق -->
+<!-- ————————————————— شاشة البداية -->
+<section id="splash" hidden>
+  <div class="splash-in">
+    <span class="wordmark xl">LIWA</span>
+    <div class="splash-bar"><i></i></div>
+    <p id="splashText"></p>
+  </div>
+</section>
+
+<!-- ————————————————— من يشاهد؟ (الاشتراكات كملفات شخصية) -->
+<section id="profiles" hidden>
+  <div class="prof-in">
+    <span class="wordmark">LIWA</span>
+    <h1>من يشاهد؟</h1>
+    <div class="prof-grid" id="profGrid"></div>
+    <button class="btn outline" id="profManage">إدارة الاشتراكات</button>
+  </div>
+</section>
+
 <div id="app" hidden>
-  <nav id="nav">
-    <div class="nav-brand"><svg><use href="#i-logo"/></svg><b>Liwa<span>IPTV</span></b></div>
+  <nav id="nav" aria-label="التنقل">
+    <div class="nav-brand"><span class="wordmark sm">L</span></div>
+    <button data-go="search" class="nav-search"><svg><use href="#i-search"/></svg><span>بحث</span></button>
     <button data-go="home"><svg><use href="#i-home"/></svg><span>الرئيسية</span></button>
     <button data-go="live"><svg><use href="#i-live"/></svg><span>مباشر</span></button>
     <button data-go="movie"><svg><use href="#i-movie"/></svg><span>أفلام</span></button>
     <button data-go="series"><svg><use href="#i-series"/></svg><span>مسلسلات</span></button>
-    <button data-go="search"><svg><use href="#i-search"/></svg><span>بحث</span></button>
-    <button data-go="settings" class="nav-settings"><svg><use href="#i-gear"/></svg><span>الإعدادات</span></button>
+    <button data-go="settings" class="nav-me"><span class="avatar sm" data-avatar></span><span>حسابي</span></button>
   </nav>
   <header id="top">
-    <button id="plSwitch" class="pl-switch"><i class="dot"></i><span id="plName">—</span><svg><use href="#i-down"/></svg></button>
+    <button class="brand" data-go="home" aria-label="الرئيسية"><span class="wordmark">LIWA</span></button>
+    <div class="top-pills" id="pills">
+      <button data-go="series">مسلسلات</button>
+      <button data-go="movie">أفلام</button>
+      <button data-go="live">مباشر</button>
+    </div>
     <span class="grow"></span>
     <span id="clock" class="clock"></span>
-    <button class="icon-btn" data-go="search" aria-label="بحث"><svg><use href="#i-search"/></svg></button>
-    <button class="icon-btn" data-go="settings" aria-label="الإعدادات"><svg><use href="#i-gear"/></svg></button>
+    <button class="icon-btn top-search" data-go="search" aria-label="بحث"><svg><use href="#i-search"/></svg></button>
+    <button id="plSwitch" class="avatar-btn" aria-label="تبديل الاشتراك"><span class="avatar" data-avatar></span></button>
   </header>
   <main id="view"></main>
 </div>

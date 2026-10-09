@@ -77,9 +77,33 @@ write(path.join(JAVA_DIR, 'MainActivity.java'), `package ${PKG};
 
 import android.content.res.Configuration;
 import android.os.Bundle;
+import androidx.core.content.ContextCompat;
+import androidx.core.util.Consumer;
+import androidx.window.java.layout.WindowInfoTrackerCallbackAdapter;
+import androidx.window.layout.WindowInfoTracker;
+import androidx.window.layout.WindowLayoutInfo;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+    private WindowInfoTrackerCallbackAdapter foldTracker;
+    private final Consumer<WindowLayoutInfo> foldListener = info -> LiwaNativePlugin.onLayout(this, info);
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        // الهواتف القابلة للطي: موضع المفصّل ووضعية الطي (كتاب/طاولة)
+        try {
+            foldTracker = new WindowInfoTrackerCallbackAdapter(WindowInfoTracker.getOrCreate(this));
+            foldTracker.addWindowLayoutInfoListener(this, ContextCompat.getMainExecutor(this), foldListener);
+        } catch (Throwable ignored) { }
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (foldTracker != null) foldTracker.removeWindowLayoutInfoListener(foldListener);
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(LiwaNativePlugin.class);
@@ -326,6 +350,10 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import android.graphics.Rect;
+import androidx.window.layout.DisplayFeature;
+import androidx.window.layout.FoldingFeature;
+import androidx.window.layout.WindowLayoutInfo;
 import org.json.JSONObject;
 
 @CapacitorPlugin(name = "LiwaNative")
@@ -334,8 +362,37 @@ public class LiwaNativePlugin extends Plugin {
     private static volatile boolean playing = false;
     private static volatile Rational aspect = new Rational(16, 9);
 
+    private static volatile JSObject lastFold = null;
+
     @Override
     public void load() { instance = this; }
+
+    /** يحوّل معلومات الطي إلى إحداثيات CSS ويبلغ الواجهة. */
+    static void onLayout(Activity a, WindowLayoutInfo info) {
+        JSObject o = new JSObject();
+        o.put("state", "none");
+        float d = a.getResources().getDisplayMetrics().density;
+        for (DisplayFeature f : info.getDisplayFeatures()) {
+            if (!(f instanceof FoldingFeature)) continue;
+            FoldingFeature ff = (FoldingFeature) f;
+            Rect r = ff.getBounds();
+            o.put("state", ff.getState() == FoldingFeature.State.HALF_OPENED ? "half" : "flat");
+            o.put("orientation", ff.getOrientation() == FoldingFeature.Orientation.HORIZONTAL ? "h" : "v");
+            o.put("separating", ff.isSeparating());
+            o.put("x", Math.round(r.left / d));
+            o.put("y", Math.round(r.top / d));
+            o.put("w", Math.round(r.width() / d));
+            o.put("h", Math.round(r.height() / d));
+            break;
+        }
+        lastFold = o;
+        if (instance != null) instance.notifyListeners("fold", o);
+    }
+
+    @PluginMethod
+    public void getFold(PluginCall call) {
+        call.resolve(lastFold != null ? lastFold : new JSObject());
+    }
 
     static void notifyPip(boolean active) {
         if (instance == null) return;
@@ -525,6 +582,9 @@ if (fs.existsSync(gradlePath)) {
     .replace(/versionName "[^"]*"/, `versionName "${pkg.version}"`);
   if (!gradle.includes('androidx.core:core')) {
     gradle = gradle.replace(/dependencies \{/, 'dependencies {\n    implementation "androidx.core:core:$androidxCoreVersion"');
+  }
+  if (!gradle.includes('androidx.window:window')) {
+    gradle = gradle.replace(/dependencies \{/, 'dependencies {\n    implementation "androidx.window:window:1.2.0"\n    implementation "androidx.window:window-java:1.2.0"');
   }
   write(gradlePath, gradle);
 }

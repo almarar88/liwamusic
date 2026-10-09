@@ -24,6 +24,7 @@ export const native = {
   pip: (w = 16, h = 9) => call('enterPip', { w, h }),
   openExternal: (url, title, ua) => call('openExternal', { url, title, ua }),
   isTv: async () => !!((await call('deviceInfo')) || {}).tv,
+  getFold: () => call('getFold'),
   on(event, cb) {
     const p = P();
     if (p && p.addListener) p.addListener(event, cb);

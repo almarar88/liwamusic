@@ -10,8 +10,8 @@ import { setDefaultHeaders } from './http.js';
 import { native, onBack, exitApp, isNative } from './native.js';
 import { enrich } from './tmdb.js';
 import { nowNext, progress } from './epg.js';
-import { esc, fmtDur, fmtTime, clock, norm } from './util.js';
-import { $, $$, icon, toast, art, choose, confirmBox, promptBox, closeSheet, sheetOpen, renderChunks, lazyEach, moveFocus, KEYDIR } from './ui.js';
+import { esc, fmtDur, clock, norm, hash } from './util.js';
+import { $, $$, icon, toast, art, choose, confirmBox, promptBox, openSheet, closeSheet, sheetOpen, renderChunks, lazyEach, moveFocus, KEYDIR } from './ui.js';
 
 const lib = new Library();
 const DEFAULTS = {
@@ -47,6 +47,7 @@ const KIND_LABEL = { live: 'القنوات', movie: 'الأفلام', series: '�
 
 async function boot() {
   settings = { ...DEFAULTS, ...((await store.get('settings')) || {}) };
+  showSplash('');
   await lib.init();
   applyUserAgent();
   player = new Player({ lib, settings, saveSettings, onClose: afterPlayer });
@@ -54,25 +55,29 @@ async function boot() {
   bindAddForm();
   setInterval(() => { $('#clock').textContent = clock(Date.now()); }, 15000);
   $('#clock').textContent = clock(Date.now());
-  if (isNative && await native.isTv()) document.body.classList.add('tv');
-  if (!lib.pl) { showWelcome(); return; }
+  if (new URLSearchParams(location.search).has('tv') || (isNative && await native.isTv())) document.body.classList.add('tv');
+  watchFold();
+  if (!lib.pl) { hideSplash(); showWelcome(); return; }
+  if (lib.playlists.length > 1) { hideSplash(); showProfiles(); return; }
   await activate(lib.pl.id);
 }
 
 async function activate(id, { refresh = false } = {}) {
-  showWelcome(true);
-  setProgress('تحميل المكتبة…');
+  $('#profiles').hidden = true;
+  showSplash('تحميل المكتبة…');
   try {
-    await lib.activate(id, { refresh, onProgress: setProgress });
-    // الحد الأدنى لتحديث القائمة: 24 ساعة — يحدَّث في الخلفية دون إيقاف المستخدم
+    await lib.activate(id, { refresh, onProgress: (t) => { $('#splashText').textContent = t; } });
+    // تحديث تلقائي في الخلفية إن مضى يوم على آخر تحميل
     if (!refresh && Date.now() - (lib.data.loadedAt || 0) > 24 * 3600e3) backgroundRefresh();
   } catch (e) {
-    setProgress(null);
+    hideSplash();
+    showWelcome();
     showAddError(e.message);
     $('#addCancel').hidden = lib.playlists.length < 2;
     return;
   }
-  setProgress(null);
+  billboardPick = null;
+  hideSplash();
   showApp();
 }
 
@@ -82,12 +87,19 @@ async function backgroundRefresh() {
     const data = await providers[lib.pl.type].load(lib.pl);
     data.loadedAt = Date.now();
     await store.set(`lib:${id}`, data);
-    if (lib.pl && lib.pl.id === id) { lib.setData(data); if (!player.isOpen && !sheetOpen()) render(); }
+    if (lib.pl && lib.pl.id === id) { lib.setData(data); if (!player.isOpen && !sheetOpen() && $('#detail').hidden) render(); }
   } catch { /* نبقى على النسخة المحفوظة */ }
 }
 
+function showSplash(text) {
+  $('#splash').hidden = false;
+  $('#splashText').textContent = text || '';
+}
+function hideSplash() { $('#splash').hidden = true; }
+
 function showWelcome(loading = false) {
   $('#welcome').hidden = false;
+  $('#profiles').hidden = true;
   $('#app').hidden = true;
   $('#detail').hidden = true;
   $('#addForm').classList.toggle('loading', loading);
@@ -97,9 +109,10 @@ function showWelcome(loading = false) {
 
 function showApp() {
   $('#welcome').hidden = true;
+  $('#profiles').hidden = true;
   $('#app').hidden = false;
   $('#addForm').classList.remove('loading');
-  $('#plName').textContent = lib.pl.name;
+  paintAvatars();
   go(route || 'home');
 }
 
@@ -115,6 +128,69 @@ function showAddError(msg) {
   e.textContent = msg;
   e.hidden = false;
   $('#addForm').classList.remove('loading');
+}
+
+// ———————————————————————————— الاشتراكات كملفات شخصية
+
+const hueOf = (pl) => parseInt(hash(pl.id), 36) % 360;
+const initialOf = (pl) => (String(pl.name || '?').trim().replace(/^ال(?=\p{L}{2})/u, '').match(/[\p{L}\p{N}]/u) || ['?'])[0].toUpperCase();
+const avatar = (pl, cls = '') => `<span class="avatar ${cls}" style="--h:${hueOf(pl)}">${esc(initialOf(pl))}</span>`;
+
+function paintAvatars() {
+  for (const el of $$('[data-avatar]')) {
+    el.style.setProperty('--h', hueOf(lib.pl));
+    el.textContent = initialOf(lib.pl);
+  }
+}
+
+let profEdit = false;
+function showProfiles() {
+  const box = $('#profGrid');
+  box.innerHTML = lib.playlists.map((p) => `<button class="prof" data-prof="${esc(p.id)}">${avatar(p)}<span>${esc(p.name)}</span><small>${providers[p.type].label}</small></button>`).join('')
+    + `<button class="prof add" data-prof="+"><span class="avatar">${icon('plus')}</span><span>إضافة اشتراك</span></button>`;
+  $('#profiles').hidden = false;
+  $('#profManage').textContent = profEdit ? 'تم' : 'إدارة الاشتراكات';
+  $('#profiles').classList.toggle('edit', profEdit);
+  box.onclick = async (e) => {
+    const b = e.target.closest('[data-prof]');
+    if (!b) return;
+    const id = b.dataset.prof;
+    if (id === '+') { profEdit = false; openAdd(); return; }
+    if (profEdit) {
+      const p = lib.playlists.find((x) => x.id === id);
+      if (!(await confirmBox(`حذف «${p.name}» وكل قائمته وسجلّه؟`, { ok: 'حذف', danger: true }))) return;
+      await lib.removePlaylist(id);
+      if (!lib.playlists.length) { profEdit = false; lib.data = null; showWelcome(); $('#addCancel').hidden = true; return; }
+      showProfiles();
+      return;
+    }
+    route = 'home';
+    if (lib.data && lib.pl && lib.pl.id === id) { $('#profiles').hidden = true; showApp(); return; }
+    await activate(id);
+  };
+  setTimeout(() => (box.querySelector(`[data-prof="${CSS.escape((lib.pl && lib.pl.id) || '')}"]`) || box.querySelector('.prof')).focus(), 60);
+}
+
+// ———————————————————————————— الهواتف القابلة للطي
+
+/** وضعية الطي من Jetpack WindowManager: طاولة (مفصّل أفقي) أو كتاب (مفصّل عمودي). */
+function applyFold(f) {
+  const b = document.body;
+  const half = f && (f.state === 'half' || f.separating);
+  b.classList.toggle('tabletop', !!(half && f.orientation === 'h'));
+  b.classList.toggle('book', !!(half && f.orientation === 'v'));
+  if (half) {
+    b.style.setProperty('--hinge-top', `${f.y}px`);
+    b.style.setProperty('--hinge-h', `${f.h}px`);
+    b.style.setProperty('--hinge-w', `${f.w}px`);
+  }
+  if (player && player.isOpen) player.applyAspect();
+}
+
+async function watchFold() {
+  native.on('fold', applyFold);
+  const f = await native.getFold();
+  if (f) applyFold(f);
 }
 
 // ———————————————————————————— نموذج إضافة اشتراك
@@ -173,7 +249,10 @@ function bindChrome() {
     const g = e.target.closest('[data-go]');
     if (g) { go(g.dataset.go); }
   });
-  $('#plSwitch').addEventListener('click', switchPlaylist);
+  $('#plSwitch').addEventListener('click', () => showProfiles());
+  $('#profManage').addEventListener('click', () => { profEdit = !profEdit; showProfiles(); });
+  $('#view').addEventListener('focusin', onHomeFocus);
+  $('#view').addEventListener('scroll', () => { $('#app').classList.toggle('scrolled', $('#view').scrollTop > 30); }, { passive: true });
   onBack(handleBack);
   document.addEventListener('keydown', onKey);
 }
@@ -181,7 +260,10 @@ function bindChrome() {
 function go(r) {
   route = r;
   $('#detail').hidden = true;
+  $('#app').dataset.route = r;
+  $('#app').classList.remove('scrolled');
   $$('#nav [data-go]').forEach((b) => b.classList.toggle('on', b.dataset.go === r));
+  $$('#pills [data-go]').forEach((b) => b.classList.toggle('on', b.dataset.go === r));
   render();
   const v = $('#view');
   v.scrollTop = 0;
@@ -201,6 +283,7 @@ function handleBack() {
   if (sheetOpen()) { closeSheet(); return; }
   if (player.back()) return;
   if (!$('#detail').hidden) { closeDetail(); return; }
+  if (!$('#profiles').hidden && lib.data) { $('#profiles').hidden = true; showApp(); return; }
   if (!$('#welcome').hidden && lib.data) { showApp(); return; }
   if (route !== 'home') { go('home'); return; }
   if (Date.now() - lastBack < 2000) { exitApp(); return; }
@@ -214,23 +297,14 @@ function onKey(e) {
   if (KEYDIR[e.key]) {
     const t = e.target;
     if (t instanceof HTMLInputElement && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && t.value) return;
-    const scope = sheetOpen() ? $('#sheet') : !$('#detail').hidden ? $('#detail') : !$('#welcome').hidden ? $('#welcome') : $('#app');
+    const scope = sheetOpen() ? $('#sheet') : !$('#detail').hidden ? $('#detail') : !$('#profiles').hidden ? $('#profiles') : !$('#welcome').hidden ? $('#welcome') : $('#app');
     if (moveFocus(KEYDIR[e.key], scope)) e.preventDefault();
   }
 }
 
-async function switchPlaylist() {
-  const opts = lib.playlists.map((p) => ({ label: p.name, hint: providers[p.type].label, value: p.id, active: p.id === lib.pl.id, icon: 'live' }));
-  opts.push({ label: 'إضافة اشتراك جديد', value: '+', icon: 'plus' });
-  const v = await choose('الاشتراكات', opts);
-  if (!v) return;
-  if (v === '+') { openAdd(); return; }
-  if (v !== lib.pl.id) { route = 'home'; await activate(v); }
-}
-
 function openAdd() {
   showWelcome();
-  $('#addCancel').hidden = false;
+  $('#addCancel').hidden = !lib.data;
 }
 
 function openExternal(url, title, ua) {
@@ -261,20 +335,62 @@ async function askPin() {
 
 // ———————————————————————————— الرئيسية
 
-function card(item, { progressPct = 0, sub = '' } = {}) {
-  const isLive = item.kind === 'live';
-  const meta = sub || (isLive ? '' : [item.year, item.rating ? `★ ${Number(item.rating).toFixed(1)}` : ''].filter(Boolean).join(' · '));
-  return `<button class="card-item ${isLive ? 'ch-tile' : 'poster'}" data-open="${esc(item.id)}">
-    ${art(item.logo, item.title || item.name, isLive ? 'logo' : 'cover')}
-    ${item.quality && !isLive ? `<span class="q">${esc(item.quality)}</span>` : ''}
-    ${progressPct ? `<i class="pb"><i style="width:${progressPct}%"></i></i>` : ''}
-    <b>${esc(item.title || item.name)}</b>${meta ? `<small>${esc(meta)}</small>` : ''}</button>`;
+const WEEK = 7 * 86400;
+let top10 = new Set();
+let billboardPick = null;
+
+function card(item, { progressPct = 0 } = {}) {
+  const name = item.title || item.name;
+  if (item.kind === 'live') {
+    return `<button class="card-item ch-tile" data-open="${esc(item.id)}">${art(item.logo, name, 'logo')}<span class="live-dot">مباشر</span>${lib.isFav(item.id) ? icon('heart-f', 'fav') : ''}<b>${esc(name)}</b></button>`;
+  }
+  const isNew = item.added && Date.now() / 1000 - item.added < WEEK;
+  return `<button class="card-item poster" data-open="${esc(item.id)}" aria-label="${esc(name)}">
+    ${art(item.logo, name, 'cover')}
+    ${top10.has(item.id) ? '<span class="top10">TOP<b>10</b></span>' : item.quality ? `<span class="q">${esc(item.quality)}</span>` : ''}
+    ${progressPct ? `<i class="pb"><i style="width:${progressPct}%"></i></i>` : isNew ? `<span class="new">${item.kind === 'series' ? 'حلقات جديدة' : 'أُضيف حديثًا'}</span>` : ''}
+    <b>${esc(name)}</b></button>`;
 }
 
 function row(title, items, opts = {}) {
   if (!items.length) return '';
-  return `<section class="row-sec"><div class="row-head"><h2>${esc(title)}</h2>${opts.more ? `<button class="link" data-go="${opts.more}">عرض الكل ${icon('chev')}</button>` : ''}</div>
-    <div class="row-scroll ${opts.cls || ''}">${items.map((i) => (opts.render ? opts.render(i) : card(i))).join('')}</div></section>`;
+  return `<section class="row-sec ${opts.cls || ''}"><div class="row-head"><h2>${esc(title)}</h2>${opts.more ? `<button class="link" ${opts.more}>عرض الكل ${icon('chev')}</button>` : ''}</div>
+    <div class="row-scroll">${items.map((i, n) => (opts.render ? opts.render(i, n) : card(i))).join('')}</div></section>`;
+}
+
+/** محتوى اللوحة الكبيرة لعنصر (فيلم/مسلسل). */
+function billboardHtml(it) {
+  const name = it.title || it.name;
+  const img = it.backdrop || it.logo || '';
+  const rank = [...top10].indexOf(it.id);
+  const tags = [
+    rank >= 0 ? `<span class="tag-red">#${rank + 1} اليوم</span>` : '',
+    it.year ? `<span>${it.year}</span>` : '',
+    it.rating ? `<span>★ ${Number(it.rating).toFixed(1)}</span>` : '',
+    ...String(it.genre || lib.catById(it.kind, it.cat)?.name || '').split(/[,،|/]/).map((g) => g.trim()).filter(Boolean).slice(0, 3).map((g) => `<span>${esc(g)}</span>`),
+  ].filter(Boolean).join('');
+  const fav = lib.isFav(it.id);
+  return `<div class="bb-glow" style="--img:url('${esc(img)}')"></div>
+    <button class="bb-poster" data-bb="info" data-id="${esc(it.id)}" aria-label="التفاصيل">${art(it.logo, name, 'cover')}</button>
+    <div class="bb-body">
+      <span class="kicker"><span class="n">L</span>${it.kind === 'series' ? 'مسلسل' : 'فيلم'}</span>
+      <h1 class="bb-title">${esc(name)}</h1>
+      <div class="bb-tags">${tags}</div>
+      ${it.plot ? `<p class="bb-plot">${esc(it.plot)}</p>` : ''}
+      <div class="bb-actions">
+        <button class="btn white" data-bb="play" data-id="${esc(it.id)}">${icon('play')} تشغيل</button>
+        <button class="btn gray" data-bb="fav" data-id="${esc(it.id)}">${icon(fav ? 'check' : 'plus')} قائمتي</button>
+        <button class="btn gray icon-only bb-info" data-bb="info" data-id="${esc(it.id)}" aria-label="التفاصيل">${icon('info')}</button>
+      </div>
+    </div>`;
+}
+
+function paintBillboard(it, animate = false) {
+  const bb = $('#bb');
+  if (!bb || !it) return;
+  bb.className = `billboard ${it.backdrop ? '' : 'poster-only'} ${animate ? 'swap' : ''}`;
+  bb.dataset.id = it.id;
+  bb.innerHTML = billboardHtml(it);
 }
 
 function renderHome() {
@@ -286,10 +402,18 @@ function renderHome() {
   const movies = items.filter((i) => i.kind === 'movie' && ok(i));
   const series = items.filter((i) => i.kind === 'series' && ok(i));
   const live = items.filter((i) => i.kind === 'live' && ok(i));
-  const latestMovies = sortItems(movies, 'added').slice(0, 24);
-  const latestSeries = sortItems(series, 'added').slice(0, 24);
-  const topRated = sortItems(movies.filter((m) => m.rating), 'rating').slice(0, 24);
-  const hero = [...latestMovies, ...latestSeries].find((i) => i.logo) || null;
+  const latestMovies = sortItems(movies, 'added').slice(0, 20);
+  const latestSeries = sortItems(series, 'added').slice(0, 20);
+  const rated = sortItems(movies.filter((m) => m.rating), 'rating');
+  const top = (rated.length >= 10 ? rated : latestMovies).slice(0, 10);
+  top10 = new Set(top.map((i) => i.id));
+
+  // اللوحة: عنصر حديث له صورة — يبقى ثابتًا خلال الجلسة
+  if (!billboardPick || !lib.byId.has(billboardPick)) {
+    const pool = [...latestSeries.filter((s) => s.backdrop), ...latestMovies, ...latestSeries].filter((i) => i.logo).slice(0, 8);
+    billboardPick = pool.length ? pool[Math.floor(Math.random() * pool.length)].id : null;
+  }
+  const hero = billboardPick && lib.byId.get(billboardPick);
 
   // متابعة المشاهدة: آخر حلقة لكل مسلسل
   const seen = new Set();
@@ -300,42 +424,100 @@ function renderHome() {
     return true;
   }).slice(0, 20);
 
-  const favLive = live.filter((i) => favs.has(i.id));
-  const recentLive = lib.recentIds('live').map((id) => lib.byId.get(id)).filter(Boolean).slice(0, 20);
-  const favVod = [...movies, ...series].filter((i) => favs.has(i.id));
+  const myList = [...movies, ...series].filter((i) => favs.has(i.id)).sort((a, b) => lib.user.fav[b.id] - lib.user.fav[a.id]);
+  const myLive = [...live.filter((i) => favs.has(i.id)), ...lib.recentIds('live').map((id) => lib.byId.get(id)).filter((i) => i && !favs.has(i.id))].slice(0, 20);
+  const liveNow = myLive.length ? [] : live.slice(0, 16);
+
+  // «لأنك شاهدت…»: من نفس قسم آخر فيلم/مسلسل شوهد
+  const lastVod = lib.user.history.map((h) => lib.byId.get(h.seriesId || h.id)).find((i) => i && i.kind !== 'live');
+  const because = lastVod ? sortItems(items.filter((i) => i.cat === lastVod.cat && i.id !== lastVod.id && ok(i)), 'rating').slice(0, 20) : [];
+
+  // صفوف الأقسام الأكثر محتوى
+  const catRows = (kind, list, n) => {
+    const counts = countByCat(list, kind);
+    return lib.cats(kind).filter((c) => !c.adult && counts.get(c.id) >= 4).sort((a, b) => counts.get(b.id) - counts.get(a.id)).slice(0, n)
+      .map((c) => row(c.name, sortItems(list.filter((i) => i.cat === c.id), 'added').slice(0, 20), { more: `data-cat-go="${kind}|${esc(c.id)}"` })).join('');
+  };
+
   const acc = lib.data.account;
   const days = acc && acc.expires ? Math.ceil((acc.expires - Date.now()) / 864e5) : null;
 
   v.innerHTML = `
-    ${hero ? `<section class="hero" style="--img:url('${esc(hero.backdrop || hero.logo)}')">
-      <div class="hero-in">
-        <span class="kicker">${hero.kind === 'movie' ? 'أحدث الأفلام' : 'أحدث المسلسلات'}</span>
-        <h1>${esc(hero.title || hero.name)}</h1>
-        <div class="meta">${[hero.year, hero.rating ? `★ ${Number(hero.rating).toFixed(1)}` : '', hero.genre].filter(Boolean).map(esc).join(' · ')}</div>
-        <div class="row gap"><button class="btn primary" data-open="${esc(hero.id)}">${icon('play')} مشاهدة</button><button class="btn glass" data-open="${esc(hero.id)}" data-info="1">${icon('info')} التفاصيل</button></div>
-      </div></section>` : ''}
-    <div class="stats">
-      <button data-go="live"><b>${live.length.toLocaleString('ar')}</b><span>قناة</span></button>
-      <button data-go="movie"><b>${movies.length.toLocaleString('ar')}</b><span>فيلم</span></button>
-      <button data-go="series"><b>${series.length.toLocaleString('ar')}</b><span>مسلسل</span></button>
-      ${days !== null ? `<button data-go="settings" class="${days < 7 ? 'warn' : ''}"><b>${days > 0 ? days.toLocaleString('ar') : 'منتهٍ'}</b><span>${days > 0 ? 'يوم متبقٍ' : 'الاشتراك'}</span></button>` : ''}
-    </div>
-    ${row('متابعة المشاهدة', cont, {
-    render: (h) => {
-      const pct = h.dur ? Math.min(100, (h.pos / h.dur) * 100) : 0;
-      return `<button class="card-item wide-card" data-resume="${esc(h.id)}">${art(h.logo, h.name, 'cover')}<i class="pb"><i style="width:${pct}%"></i></i>
-        <b>${esc(h.name)}</b><small>${h.ep ? `م${h.ep.season} · ح${h.ep.episode} — ` : ''}متبقٍ ${fmtDur((h.dur - h.pos) / 60)}</small></button>`;
-    },
-  })}
-    ${row('قنواتك المفضلة', favLive, { cls: 'tiles' })}
-    ${row('شاهدتها مؤخرًا', recentLive, { cls: 'tiles' })}
-    ${row('مفضلتك', favVod)}
-    ${row('أفلام أضيفت حديثًا', latestMovies, { more: 'movie' })}
-    ${row('مسلسلات أضيفت حديثًا', latestSeries, { more: 'series' })}
-    ${row('الأعلى تقييمًا', topRated, { more: 'movie' })}
+    ${hero ? `<section class="billboard" id="bb"></section>` : '<div style="height:70px"></div>'}
+    ${days !== null && days <= 7 ? `<div class="expiry ${days <= 0 ? 'over' : ''}">${icon('info')} ${days > 0 ? `ينتهي اشتراكك بعد ${days} ${days === 1 ? 'يوم' : 'أيام'}` : 'انتهى اشتراكك — جدّده لدى مزوّدك'}</div>` : ''}
+    ${row(`متابعة المشاهدة`, cont, { render: cwCard })}
+    ${row('أفضل 10 أفلام اليوم', top, { cls: 'top-row', render: (i, n) => `<div class="rank"><span class="num">${n + 1}</span>${card(i)}</div>` })}
+    ${row('قائمتي', myList)}
+    ${row('قنواتك', myLive, { more: 'data-go="live"' })}
+    ${row('أُضيف حديثًا', latestMovies, { more: 'data-go="movie"' })}
+    ${row('مسلسلات جديدة', latestSeries, { more: 'data-go="series"' })}
+    ${lastVod ? row(`لأنك شاهدت ${lastVod.title || lastVod.name}`, because) : ''}
+    ${row('بث مباشر الآن', liveNow, { more: 'data-go="live"' })}
+    ${catRows('movie', movies, 4)}
+    ${row('مسلسلات بتقييم عالٍ', sortItems(series.filter((s) => s.rating), 'rating').slice(0, 20), { more: 'data-go="series"' })}
+    ${catRows('series', series, 3)}
     ${!live.length && !movies.length && !series.length ? '<p class="empty">لا يوجد محتوى في هذا الاشتراك.</p>' : ''}`;
+  if (hero) paintBillboard(hero);
+  if (document.body.classList.contains('tv')) setTimeout(() => { const f = $('#bb [data-bb=play]') || $('#view .card-item'); if (f && !player.isOpen && $('#detail').hidden) f.focus({ preventScroll: true }); }, 50);
   bindOpen(v);
   v.querySelectorAll('[data-resume]').forEach((b) => b.addEventListener('click', () => resume(b.dataset.resume)));
+  v.querySelectorAll('[data-cwinfo]').forEach((b) => b.addEventListener('click', () => openDetail(lib.byId.get(b.dataset.cwinfo))));
+  v.querySelectorAll('[data-cwmenu]').forEach((b) => b.addEventListener('click', () => cwMenu(b.dataset.cwmenu)));
+  v.querySelectorAll('[data-cat-go]').forEach((b) => b.addEventListener('click', () => {
+    const [kind, cat] = b.dataset.catGo.split('|');
+    viewState[kind].cat = cat; viewState[kind].q = '';
+    go(kind);
+  }));
+  v.onclick = (e) => {
+    const b = e.target.closest('[data-bb]');
+    if (!b) return;
+    const it = lib.byId.get(b.dataset.id);
+    if (!it) return;
+    if (b.dataset.bb === 'play') openDetail(it, { autoplay: true });
+    if (b.dataset.bb === 'info') openDetail(it);
+    if (b.dataset.bb === 'fav') lib.toggleFav(it.id).then((on) => { toast(on ? 'أُضيف إلى قائمتي' : 'أُزيل من قائمتي'); b.innerHTML = `${icon(on ? 'check' : 'plus')} قائمتي`; });
+  };
+}
+
+/** على التلفاز والشاشات العريضة: اللوحة تعرض العنصر المحدد بالريموت. */
+let bbTimer = null;
+function onHomeFocus(e) {
+  if (route !== 'home') return;
+  const c = e.target.closest && e.target.closest('.poster[data-open]');
+  if (!c || !$('#bb') || !matchMedia('(min-width:600px)').matches || !c.matches(':focus-visible')) return;
+  clearTimeout(bbTimer);
+  bbTimer = setTimeout(() => {
+    const it = lib.byId.get(c.dataset.open);
+    if (it && $('#bb') && $('#bb').dataset.id !== it.id) paintBillboard(it, true);
+  }, 350);
+}
+
+function cwCard(h) {
+  const pct = h.dur ? Math.min(100, (h.pos / h.dur) * 100) : 0;
+  const left = fmtDur((h.dur - h.pos) / 60);
+  return `<div class="cw">
+    <button class="card-item poster" data-resume="${esc(h.id)}" aria-label="متابعة ${esc(h.name)}">${art(h.logo, h.name, 'cover')}<span class="play">${icon('play')}</span></button>
+    <i class="pb"><i style="width:${pct}%"></i></i>
+    <div class="cw-bar"><button class="icon-btn" data-cwinfo="${esc(h.seriesId || h.id)}" aria-label="التفاصيل">${icon('info')}</button>
+      <small>${h.ep ? `م${h.ep.season}:ح${h.ep.episode}` : left ? `${left}` : ''}</small>
+      <button class="icon-btn" data-cwmenu="${esc(h.id)}" aria-label="خيارات">${icon('list')}</button></div></div>`;
+}
+
+async function cwMenu(id) {
+  const h = lib.user.history.find((x) => x.id === id);
+  if (!h) return;
+  const v = await choose(h.name, [
+    { label: 'متابعة المشاهدة', value: 'play', icon: 'play' },
+    { label: 'التفاصيل', value: 'info', icon: 'info' },
+    { label: 'إزالة من «متابعة المشاهدة»', value: 'rm', icon: 'trash', danger: true },
+  ]);
+  if (v === 'play') resume(id);
+  if (v === 'info') openDetail(lib.byId.get(h.seriesId || h.id));
+  if (v === 'rm') {
+    lib.user.history = lib.user.history.filter((x) => (h.seriesId ? x.seriesId !== h.seriesId : x.id !== id));
+    await lib.saveUser();
+    render();
+  }
 }
 
 async function resume(id) {
@@ -358,7 +540,6 @@ function bindOpen(root) {
     const it = lib.byId.get(b.dataset.open);
     if (!it) return;
     if (it.kind === 'live') playLive(it, null);
-    else if (it.kind === 'movie' && !b.dataset.info && b.closest('.hero')) openDetail(it, { autoplay: true });
     else openDetail(it);
   }));
 }
@@ -369,22 +550,33 @@ function playLive(item, list) {
   player.open({ item, kind: 'live', list: l, index: index < 0 ? 0 : index });
 }
 
-// ———————————————————————————— القنوات المباشرة
+// ———————————————————————————— الأقسام المشتركة (مباشر / أفلام / مسلسلات)
 
-function catList(kind, st) {
+const PAGE_TITLE = { live: 'مباشر', movie: 'أفلام', series: 'مسلسلات' };
+
+function catsFor(kind) {
   const counts = countByCat(lib.data.items, kind);
   const bl = blocked(kind);
   const total = [...counts.entries()].filter(([c]) => !bl.has(c)).reduce((a, [, n]) => a + n, 0);
   const favN = lib.data.items.filter((i) => i.kind === kind && lib.isFav(i.id)).length;
   const recN = recentFor(kind).length;
-  const cats = [
-    { id: 'all', name: 'الكل', n: total },
-    ...(favN ? [{ id: 'fav', name: 'المفضلة', n: favN, icon: 'heart-f' }] : []),
+  return [
+    { id: 'all', name: kind === 'live' ? 'كل القنوات' : 'كل الفئات', n: total },
+    ...(favN ? [{ id: 'fav', name: kind === 'live' ? 'المفضلة' : 'قائمتي', n: favN, icon: 'heart-f' }] : []),
     ...(recN ? [{ id: 'recent', name: 'شوهد مؤخرًا', n: recN, icon: 'clock' }] : []),
     ...lib.cats(kind).map((c) => ({ ...c, n: counts.get(c.id) || 0, locked: bl.has(c.id) })).filter((c) => c.n || c.lazy),
   ];
-  return cats.map((c) => `<button class="cat ${st.cat === c.id ? 'on' : ''} ${c.locked ? 'locked' : ''}" data-cat="${esc(c.id)}">
+}
+
+function catList(kind, st) {
+  return catsFor(kind).map((c) => `<button class="cat ${st.cat === c.id ? 'on' : ''} ${c.locked ? 'locked' : ''}" data-cat="${esc(c.id)}">
     ${c.icon ? icon(c.icon) : ''}${c.locked ? icon('lock') : ''}<span>${esc(c.name)}</span>${c.n ? `<small>${c.n.toLocaleString('ar')}</small>` : ''}</button>`).join('');
+}
+
+function pageHead(kind, st) {
+  const cur = catsFor(kind).find((c) => c.id === st.cat) || catsFor(kind)[0];
+  return `<div class="page-head"><h1>${PAGE_TITLE[kind]}</h1>
+    <button class="cat-btn" data-catpick><span>${esc(cur.name)}</span>${icon('down')}</button></div>`;
 }
 
 function toolbar(kind, st) {
@@ -397,12 +589,63 @@ function toolbar(kind, st) {
 
 function sortsFor(kind) { return kind === 'live' ? ['default', 'num', 'az', 'za'] : ['added', 'az', 'za', 'rating', 'year', 'default']; }
 
+/** اختيار قسم (من القائمة الجانبية أو نافذة الفئات). */
+async function selectCat(kind, st, catId, rerender) {
+  const cat = catsFor(kind).find((c) => c.id === catId);
+  if (cat && cat.locked && !(await askPin())) return;
+  st.cat = catId;
+  if (cat && cat.locked) { render(); return; }
+  $$('#cats .cat').forEach((x) => x.classList.toggle('on', x.dataset.cat === catId));
+  const btn = $('[data-catpick] span');
+  if (btn && cat) btn.textContent = cat.name;
+  if (kind !== 'live') {
+    $('#list').innerHTML = '<div class="p-loading"><i class="spin"></i></div>';
+    try { await lib.ensureCategory(kind, st.cat); } catch (err) { toast(err.message); }
+  }
+  rerender();
+  $('#view').scrollTop = 0;
+  $('.pane') && ($('.pane').scrollTop = 0);
+}
+
+/** نافذة الفئات بملء الشاشة على الهاتف (بأسلوب نتفليكس). */
+function openCatsSheet(kind, st, rerender) {
+  const cats = catsFor(kind);
+  const card = openSheet(`<div class="opts">${cats.map((c, i) => `<button class="opt ${st.cat === c.id ? 'on' : ''}" data-i="${i}"><span>${c.locked ? '🔒 ' : ''}${esc(c.name)}</span></button>`).join('')}</div>
+    <button class="cats-close" data-close aria-label="إغلاق">${icon('close')}</button>`, { cls: 'cats-sheet' });
+  card.querySelectorAll('[data-i]').forEach((b) => b.addEventListener('click', () => { closeSheet(); selectCat(kind, st, cats[Number(b.dataset.i)].id, rerender); }));
+  card.querySelector('[data-close]').addEventListener('click', () => closeSheet());
+  const on = card.querySelector('.opt.on');
+  if (on) setTimeout(() => on.scrollIntoView({ block: 'center' }), 30);
+}
+
+function bindCats(kind, st, rerender) {
+  const cats = $('#cats');
+  cats.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-cat]');
+    if (b) selectCat(kind, st, b.dataset.cat, rerender);
+  });
+  bindLongPress(cats, '[data-cat]', (b) => catMenu(kind, b.dataset.cat));
+  $('[data-catpick]').addEventListener('click', () => openCatsSheet(kind, st, rerender));
+  const q = $('[data-q]');
+  let t = null;
+  q.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => { st.q = q.value; rerender(); }, 220); });
+  $('[data-sort]').addEventListener('click', async () => {
+    const s = await choose('الترتيب', sortsFor(kind).map((k) => ({ label: SORTS[k].label, value: k, active: st.sort === k })));
+    if (s) { st.sort = s; $('[data-sort] span').textContent = SORTS[s].label; rerender(); }
+  });
+  const vm = $('[data-viewmode]');
+  if (vm) vm.addEventListener('click', () => { settings.liveView = settings.liveView === 'grid' ? 'list' : 'grid'; saveSettings(); render(); });
+}
+
+// ———————————————————————————— القنوات المباشرة
+
 function renderLive() {
   const st = viewState.live;
   const v = $('#view');
-  v.innerHTML = `<div class="split">
+  v.innerHTML = `${pageHead('live', st)}<div class="split">
     <aside class="cats" id="cats">${catList('live', st)}</aside>
-    <section class="pane">${toolbar('live', st)}<div class="${settings.liveView === 'grid' ? 'grid tiles-grid' : 'ch-list'}" id="list"></div></section></div>`;
+    <section class="pane">${toolbar('live', st)}<div class="${settings.liveView === 'grid' ? 'grid tiles-grid' : 'ch-list'}" id="list"></div></section>
+    <aside class="preview" id="preview"></aside></div>`;
   bindCats('live', st, renderLiveList);
   renderLiveList();
 }
@@ -422,13 +665,35 @@ function recentFor(kind) {
   return [...new Set(lib.user.history.filter((h) => h.seriesId).map((h) => h.seriesId))];
 }
 
+/** لوحة المعاينة: شعار القناة وجدول برامجها (للشاشات العريضة ووضع الكتاب). */
+async function paintPreview(it) {
+  const box = $('#preview');
+  if (!box || !it || getComputedStyle(box).display === 'none') return;
+  if (box.dataset.id === it.id) return;
+  box.dataset.id = it.id;
+  const cat = lib.catById('live', it.cat);
+  box.innerHTML = `<div class="pv-logo">${art(it.logo, it.name, 'logo')}<span class="badge live-badge">مباشر</span></div>
+    <div class="pv-name">${it.num ? `<span class="muted">${it.num} · </span>` : ''}${esc(it.name)}</div>
+    <div class="pv-sub">${esc(cat ? cat.name : '')}${it.catchup ? ' · يدعم الأرشيف' : ''}</div>
+    <div class="pv-list"><div class="p-loading"><i class="spin"></i></div></div>`;
+  const list = await epgFor(it);
+  if (box.dataset.id !== it.id) return;
+  const now = Date.now();
+  const upcoming = list.filter((p) => p.end > now).slice(0, 8);
+  $('.pv-list', box).innerHTML = upcoming.length ? upcoming.map((p) => {
+    const isNow = p.start <= now;
+    return `<div class="pv-prog ${isNow ? 'now' : ''}"><span class="tm">${isNow ? 'الآن' : clock(p.start)}</span><b>${esc(p.title)}</b>
+      ${isNow ? `<i class="pb"><i style="width:${progress(p) * 100}%"></i></i>` : ''}${p.desc ? `<p>${esc(p.desc)}</p>` : ''}</div>`;
+  }).join('') : '<p class="muted sm">لا يتوفر دليل برامج لهذه القناة.</p>';
+}
+
 function renderLiveList() {
   const st = viewState.live;
   const list = filterItems(lib.data.items, { kind: 'live', cat: st.cat, query: st.q, sort: st.sort, favs: lib.favSet(), recent: recentFor('live'), blockedCats: blocked('live') });
   const box = $('#list');
   const grid = settings.liveView === 'grid';
   const one = grid
-    ? (it) => `<button class="card-item ch-tile" data-ch="${esc(it.id)}">${art(it.logo, it.name, 'logo')}<b>${esc(it.name)}</b>${lib.isFav(it.id) ? icon('heart-f', 'fav') : ''}</button>`
+    ? (it) => `<button class="card-item ch-tile" data-ch="${esc(it.id)}">${art(it.logo, it.name, 'logo')}<span class="live-dot">${it.num || 'مباشر'}</span>${lib.isFav(it.id) ? icon('heart-f', 'fav') : ''}<b>${esc(it.name)}</b></button>`
     : (it) => `<button class="ch" data-ch="${esc(it.id)}">
       <span class="num">${it.num || ''}</span>${art(it.logo, it.name, 'logo')}
       <span class="meta"><b>${esc(it.name)}</b><span class="now"></span><i class="pb"><i></i></i></span>
@@ -438,6 +703,20 @@ function renderLiveList() {
     const b = e.target.closest('[data-ch]');
     if (b) playLive(lib.byId.get(b.dataset.ch), list);
   };
+  let pt = null;
+  const preview = (e) => {
+    const b = e.target.closest('[data-ch]');
+    if (!b) return;
+    clearTimeout(pt);
+    pt = setTimeout(() => {
+      $$('#list .ch.sel').forEach((x) => x.classList.remove('sel'));
+      b.classList.add('sel');
+      paintPreview(lib.byId.get(b.dataset.ch));
+    }, 180);
+  };
+  box.addEventListener('focusin', preview);
+  box.addEventListener('pointerover', preview);
+  if (list[0]) paintPreview(list[0]);
   bindLongPress(box, '[data-ch]', (b) => itemMenu(lib.byId.get(b.dataset.ch)));
   if (!grid) {
     stopView.push(lazyEach(box, '[data-ch]', async (el) => {
@@ -449,35 +728,6 @@ function renderLiveList() {
       el.classList.add('has-epg');
     }, { concurrency: 4 }));
   }
-}
-
-function bindCats(kind, st, rerender) {
-  const cats = $('#cats');
-  cats.addEventListener('click', async (e) => {
-    const b = e.target.closest('[data-cat]');
-    if (!b) return;
-    if (b.classList.contains('locked') && !(await askPin())) return;
-    st.cat = b.dataset.cat;
-    cats.querySelectorAll('.cat').forEach((x) => x.classList.toggle('on', x === b));
-    if (b.classList.contains('locked')) { render(); return; }
-    if (kind !== 'live') {
-      $('#list').innerHTML = '<div class="p-loading"><i class="spin"></i></div>';
-      try { await lib.ensureCategory(kind, st.cat); } catch (err) { toast(err.message); }
-    }
-    rerender();
-    $('#view').scrollTop = 0;
-    $('#list').scrollTop = 0;
-  });
-  bindLongPress(cats, '[data-cat]', (b) => catMenu(kind, b.dataset.cat));
-  const q = $('[data-q]');
-  let t = null;
-  q.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => { st.q = q.value; rerender(); }, 220); });
-  $('[data-sort]').addEventListener('click', async () => {
-    const s = await choose('الترتيب', sortsFor(kind).map((k) => ({ label: SORTS[k].label, value: k, active: st.sort === k })));
-    if (s) { st.sort = s; $('[data-sort] span').textContent = SORTS[s].label; rerender(); }
-  });
-  const vm = $('[data-viewmode]');
-  if (vm) vm.addEventListener('click', () => { settings.liveView = settings.liveView === 'grid' ? 'list' : 'grid'; saveSettings(); render(); });
 }
 
 function bindLongPress(root, sel, fn) {
@@ -496,15 +746,16 @@ function bindLongPress(root, sel, fn) {
 async function itemMenu(it) {
   if (!it) return;
   const fav = lib.isFav(it.id);
+  const listName = it.kind === 'live' ? 'المفضلة' : 'قائمتي';
   const opts = [
     { label: it.kind === 'live' ? 'تشغيل' : 'التفاصيل', value: 'open', icon: 'play' },
-    { label: fav ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة', value: 'fav', icon: fav ? 'heart-f' : 'heart' },
+    { label: fav ? `إزالة من ${listName}` : `إضافة إلى ${listName}`, value: 'fav', icon: fav ? 'check' : 'plus' },
     { label: 'فتح في مشغل خارجي', value: 'ext', icon: 'ext' },
     { label: 'قفل هذا القسم', value: 'lock', icon: 'lock' },
   ];
   const v = await choose(it.name, opts);
   if (v === 'open') { if (it.kind === 'live') playLive(it); else openDetail(it); }
-  if (v === 'fav') { const on = await lib.toggleFav(it.id); toast(on ? 'أُضيف إلى المفضلة' : 'أُزيل من المفضلة'); render(); }
+  if (v === 'fav') { const on = await lib.toggleFav(it.id); toast(on ? `أُضيف إلى ${listName}` : `أُزيل من ${listName}`); render(); }
   if (v === 'ext') { const url = await lib.streamUrl(it).catch(() => ''); if (url) openExternal(url, it.name, (lib.headersFor(it) || {}).ua); }
   if (v === 'lock') toggleLock(it.cat);
 }
@@ -535,7 +786,7 @@ async function toggleLock(catId) {
 function renderVod(kind) {
   const st = viewState[kind];
   const v = $('#view');
-  v.innerHTML = `<div class="split vod">
+  v.innerHTML = `${pageHead(kind, st)}<div class="split vod">
     <aside class="cats" id="cats">${catList(kind, st)}</aside>
     <section class="pane">${toolbar(kind, st)}<div class="grid posters" id="list"></div></section></div>`;
   bindCats(kind, st, () => renderVodList(kind));
@@ -597,58 +848,82 @@ async function openDetail(item, { autoplay = false } = {}) {
   d.hidden = false;
   d.scrollTop = 0;
   const isSeries = item.kind === 'series';
+  let tab = isSeries ? 'eps' : 'similar';
   const paint = (info = {}) => {
+    const name = item.title || item.name;
     const poster = item.logo || info.poster || '';
-    const backdrop = info.backdrop || item.backdrop || poster;
+    const backdrop = info.backdrop || item.backdrop || '';
     const year = item.year || info.year;
     const rating = Number(info.rating || item.rating || 0);
     const dur = info.duration;
     const prog = !isSeries && lib.progressOf(item.id);
     const resumeAt = prog && !prog.done && prog.pos > 30 ? prog.pos : 0;
+    const last = isSeries && lib.user.history.find((h) => h.seriesId === item.id);
     const fav = lib.isFav(item.id);
+    const nSeasons = info.seasons ? info.seasons.length : 0;
+    const playLabel = isSeries
+      ? (last && last.ep ? `متابعة م${last.ep.season}:ح${last.ep.episode}` : 'تشغيل')
+      : (resumeAt ? 'استئناف' : 'تشغيل');
+    const meta = [
+      rating ? `<span class="match">${Math.round(rating * 10)}% تقييم</span>` : '',
+      year ? `<span>${year}</span>` : '',
+      isSeries && nSeasons ? `<span>${nSeasons} ${nSeasons === 1 ? 'موسم' : nSeasons === 2 ? 'موسمان' : 'مواسم'}</span>` : '',
+      dur ? `<span>${fmtDur(dur)}</span>` : '',
+      `<span class="box">${esc(item.quality || 'HD')}</span>`,
+      rating ? `<span class="star">${icon('star')} ${rating.toFixed(1)}</span>` : '',
+    ].join('');
     d.innerHTML = `
-      <div class="d-bg" style="--img:url('${esc(backdrop)}')"></div>
       <button class="icon-btn d-back" data-d="back" aria-label="رجوع">${icon('back')}</button>
-      <div class="d-main">
-        <div class="d-poster">${art(poster, item.title || item.name, 'cover')}</div>
-        <div class="d-info">
-          <h1>${esc(item.title || item.name)}</h1>
-          <div class="d-meta">${[year, dur ? fmtDur(dur) : '', rating ? `<span class="star">${icon('star')} ${rating.toFixed(1)}</span>` : '', item.quality].filter(Boolean).map((x) => `<span>${typeof x === 'number' ? x : x}</span>`).join('')}</div>
-          ${info.genre || item.genre ? `<div class="d-genre">${esc(info.genre || item.genre)}</div>` : ''}
-          <div class="row gap wrap d-actions">
-            ${isSeries ? '<button class="btn primary big" data-d="playSeries">' + icon('play') + ' <span>تشغيل</span></button>'
-    : `<button class="btn primary big" data-d="play">${icon('play')} ${resumeAt ? `استئناف من ${fmtTime(resumeAt)}` : 'تشغيل'}</button>
-               ${resumeAt ? `<button class="btn glass" data-d="restart">${icon('refresh')} من البداية</button>` : ''}`}
-            <button class="btn glass icon-only ${fav ? 'on' : ''}" data-d="fav" aria-label="مفضلة">${icon(fav ? 'heart-f' : 'heart')}</button>
-            ${info.trailer ? `<button class="btn glass" data-d="trailer">${icon('yt')} الإعلان</button>` : ''}
-            <button class="btn glass icon-only" data-d="ext" aria-label="مشغل خارجي">${icon('ext')}</button>
-          </div>
-          ${info.plot || item.plot ? `<p class="d-plot">${esc(info.plot || item.plot)}</p>` : ''}
-          ${info.director ? `<div class="d-cast"><span>الإخراج</span> ${esc(info.director)}</div>` : ''}
-          ${info.cast || item.cast ? `<div class="d-cast"><span>بطولة</span> ${esc(info.cast || item.cast)}</div>` : ''}
+      <div class="d-hero ${backdrop ? '' : 'no-backdrop'}">
+        <div class="d-img" style="--img:url('${esc(backdrop || poster)}')"></div>
+        ${backdrop ? '' : `<div class="d-mini">${art(poster, name, 'cover')}</div>`}
+        <button class="d-playover" data-d="${isSeries ? 'playSeries' : 'play'}" aria-label="تشغيل">${icon('play')}</button>
+      </div>
+      <div class="d-body">
+        <div class="d-poster">${art(poster, name, 'cover')}</div>
+        <h1 class="d-title">${esc(name)}</h1>
+        <div class="d-meta">${meta}</div>
+        <div class="d-btns">
+          <button class="btn white big" data-d="${isSeries ? 'playSeries' : 'play'}">${icon('play')} ${playLabel}</button>
+          ${resumeAt ? `<button class="btn gray big" data-d="restart">${icon('refresh')} من البداية</button>` : ''}
+        </div>
+        ${resumeAt && prog.dur ? `<div class="d-resume"><i class="pb"><i style="width:${Math.min(100, (prog.pos / prog.dur) * 100)}%"></i></i><small>متبقٍ ${fmtDur((prog.dur - prog.pos) / 60)}</small></div>` : ''}
+        ${info.plot || item.plot ? `<p class="d-plot">${esc(info.plot || item.plot)}</p>` : ''}
+        ${info.cast || item.cast ? `<div class="d-cast"><span>بطولة:</span>${esc(info.cast || item.cast)}</div>` : ''}
+        ${info.director ? `<div class="d-cast"><span>إخراج:</span>${esc(info.director)}</div>` : ''}
+        ${info.genre || item.genre ? `<div class="d-cast"><span>النوع:</span>${esc(info.genre || item.genre)}</div>` : ''}
+        <div class="d-acts">
+          <button class="act ${fav ? 'on' : ''}" data-d="fav">${icon(fav ? 'check' : 'plus')}<span>قائمتي</span></button>
+          ${info.trailer ? `<button class="act" data-d="trailer">${icon('yt')}<span>الإعلان</span></button>` : ''}
+          ${!isSeries ? `<button class="act" data-d="ext">${icon('ext')}<span>مشغل خارجي</span></button>` : ''}
         </div>
       </div>
-      ${isSeries ? '<section class="d-seasons" id="dSeasons"><div class="p-loading"><i class="spin"></i></div></section>' : ''}`;
-    d.querySelector('[data-d=play], [data-d=playSeries]')?.focus({ preventScroll: true });
+      <section class="d-panel">
+        <div class="d-tabs">${isSeries ? `<button data-tab="eps" class="${tab === 'eps' ? 'on' : ''}">الحلقات</button>` : ''}<button data-tab="similar" class="${tab === 'similar' ? 'on' : ''}">أعمال مشابهة</button></div>
+        <div id="dTab"></div>
+      </section>`;
+    d.querySelector('.d-btns .btn')?.focus({ preventScroll: true });
     d.onclick = async (e) => {
+      const t = e.target.closest('[data-tab]');
+      if (t) { tab = t.dataset.tab; d.querySelectorAll('[data-tab]').forEach((x) => x.classList.toggle('on', x === t)); paintTab(item, info, tab); return; }
       const b = e.target.closest('[data-d]');
       if (!b) return;
       const a = b.dataset.d;
       if (a === 'back') closeDetail();
       if (a === 'play') player.open({ item: { ...item, ext: info.ext || item.ext }, kind: 'movie' });
       if (a === 'restart') player.open({ item: { ...item, ext: info.ext || item.ext }, kind: 'movie', start: 1 });
-      if (a === 'fav') { const on = await lib.toggleFav(item.id); toast(on ? 'أُضيف إلى المفضلة' : 'أُزيل من المفضلة'); b.classList.toggle('on', on); b.innerHTML = icon(on ? 'heart-f' : 'heart'); }
+      if (a === 'fav') { const on = await lib.toggleFav(item.id); toast(on ? 'أُضيف إلى قائمتي' : 'أُزيل من قائمتي'); b.classList.toggle('on', on); b.innerHTML = `${icon(on ? 'check' : 'plus')}<span>قائمتي</span>`; }
       if (a === 'trailer') openExternal(`https://www.youtube.com/watch?v=${encodeURIComponent(info.trailer)}`, 'trailer');
       if (a === 'ext' && !isSeries) { const url = await lib.streamUrl({ ...item, ext: info.ext || item.ext }).catch(() => ''); if (url) openExternal(url, item.name, (lib.headersFor(item) || {}).ua); }
-      if (a === 'playSeries') playSeriesFrom(item, info);
+      if (a === 'playSeries') { if (info.seasons) playSeriesFrom(item, info); else toast('جارٍ تحميل الحلقات…'); }
     };
-    if (isSeries && info.seasons) paintSeasons(item, info);
+    paintTab(item, info, tab);
   };
   paint({});
   let info = {};
   try {
     info = isSeries ? await seriesInfo(item) : await lib.provider.movieInfo(lib.pl, item);
-  } catch (e) { if (isSeries) { $('#dSeasons').innerHTML = `<p class="empty">${esc(e.message)}</p>`; } }
+  } catch (e) { if (isSeries) info = { seasons: [], error: e.message }; }
   if (settings.tmdbKey && (!info.plot || !(item.logo || info.poster))) {
     const meta = await enrich(settings.tmdbKey, item.kind, item.title || item.name, item.year, settings.tmdbLang);
     if (meta) {
@@ -659,7 +934,22 @@ async function openDetail(item, { autoplay = false } = {}) {
   if ($('#detail').hidden) return;
   paint(info);
   detailRepaint = () => paint(info);
-  if (autoplay && !isSeries) player.open({ item: { ...item, ext: info.ext || item.ext }, kind: 'movie' });
+  if (autoplay) {
+    if (isSeries) { if (info.seasons && info.seasons.length) playSeriesFrom(item, info); } else player.open({ item: { ...item, ext: info.ext || item.ext }, kind: 'movie' });
+  }
+}
+
+function paintTab(item, info, tab) {
+  const box = $('#dTab');
+  if (!box) return;
+  if (tab === 'similar') {
+    const sim = sortItems(lib.data.items.filter((i) => i.kind === item.kind && i.cat === item.cat && i.id !== item.id && !blocked(item.kind).has(i.cat)), 'rating').slice(0, 18);
+    box.innerHTML = sim.length ? `<div class="similar">${sim.map((i) => card(i)).join('')}</div>` : '<p class="empty">لا توجد أعمال مشابهة.</p>';
+    box.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => openDetail(lib.byId.get(b.dataset.open))));
+    return;
+  }
+  if (!info.seasons) { box.innerHTML = '<div class="p-loading"><i class="spin"></i></div>'; return; }
+  paintSeasons(item, info, box);
 }
 
 function playSeriesFrom(item, info) {
@@ -674,27 +964,29 @@ function playSeriesFrom(item, info) {
   player.open({ item: ep, kind: 'episode', series: { item, info } });
 }
 
-function paintSeasons(item, info) {
-  const box = $('#dSeasons');
-  if (!box) return;
-  if (!info.seasons.length) { box.innerHTML = '<p class="empty">لا توجد حلقات متاحة.</p>'; return; }
+function paintSeasons(item, info, box) {
+  if (!info.seasons.length) { box.innerHTML = `<p class="empty">${esc(info.error || 'لا توجد حلقات متاحة.')}</p>`; return; }
   const last = lib.user.history.find((h) => h.seriesId === item.id);
   let cur = (last && last.ep && last.ep.season) || info.seasons[0].num;
-  const playBtn = $('[data-d=playSeries] span');
-  if (last && last.ep && playBtn) playBtn.textContent = `متابعة م${last.ep.season} · ح${last.ep.episode}`;
   const draw = () => {
     const season = info.seasons.find((s) => s.num === cur) || info.seasons[0];
-    box.innerHTML = `<div class="seg tabs">${info.seasons.map((s) => `<button data-season="${s.num}" class="${s.num === season.num ? 'on' : ''}">${esc(s.name)} <small>${s.episodes.length}</small></button>`).join('')}</div>
+    box.innerHTML = `<button class="season-btn" data-season-pick>${esc(season.name)} ${icon('down')}</button>
       <div class="eps">${season.episodes.map((e) => {
     const h = lib.progressOf(e.id);
     const pct = h && h.dur ? Math.min(100, (h.pos / h.dur) * 100) : 0;
+    const title = e.title && !/^الحلقة\s*\d+$/.test(e.title) ? e.title : `الحلقة ${e.episode}`;
     return `<button class="ep ${h && h.done ? 'done' : ''}" data-ep="${esc(e.id)}">
-          ${art(e.img || season.cover || item.logo, `${e.episode}`, 'thumb')}
-          <span class="ep-n">${e.episode}</span>
-          <span class="ep-meta"><b>${esc(e.title || `الحلقة ${e.episode}`)}</b>${e.duration ? `<small>${fmtDur(e.duration)}</small>` : ''}${e.plot ? `<small class="pl">${esc(e.plot)}</small>` : ''}</span>
-          ${pct ? `<i class="pb"><i style="width:${pct}%"></i></i>` : ''}${h && h.done ? icon('check', 'seen') : ''}</button>`;
+          ${art(e.img || season.cover || item.logo, `${e.episode}`, 'thumb')}<span class="ep-play">${icon('play')}</span>
+          <span class="ep-meta"><b>${e.episode}. ${esc(title)}</b>${e.duration ? `<small>${fmtDur(e.duration)}</small>` : ''}</span>
+          ${h && h.done ? icon('check', 'seen') : '<span></span>'}
+          ${e.plot ? `<p class="pl">${esc(e.plot)}</p>` : ''}
+          ${pct ? `<i class="pb"><i style="width:${pct}%"></i></i>` : ''}</button>`;
   }).join('')}</div>`;
-    box.querySelectorAll('[data-season]').forEach((b) => b.addEventListener('click', () => { cur = Number(b.dataset.season); draw(); box.querySelector(`[data-season="${cur}"]`).focus(); }));
+    box.querySelector('[data-season-pick]').addEventListener('click', async () => {
+      if (info.seasons.length < 2) return;
+      const v = await choose('المواسم', info.seasons.map((s) => ({ label: s.name, hint: `${s.episodes.length} حلقة`, value: String(s.num), active: s.num === season.num })));
+      if (v) { cur = Number(v); draw(); }
+    });
     box.querySelectorAll('[data-ep]').forEach((b) => b.addEventListener('click', () => {
       const ep = season.episodes.find((x) => x.id === b.dataset.ep);
       player.open({ item: ep, kind: 'episode', series: { item, info } });
@@ -745,6 +1037,7 @@ function renderSettings() {
   const opt = (key, val, label) => `<button data-set="${key}" data-val="${val}" class="${String(settings[key]) === String(val) ? 'on' : ''}">${label}</button>`;
   const tog = (key, label, hint = '') => `<button class="set-row toggle ${settings[key] ? 'on' : ''}" data-toggle="${key}"><span>${label}${hint ? `<small>${hint}</small>` : ''}</span><i class="sw"></i></button>`;
   v.innerHTML = `<div class="settings">
+    <div class="me-head">${avatar(lib.pl)}<b>${esc(lib.pl.name)}</b><button class="btn outline sm" data-switch>تبديل الاشتراك</button></div>
     <section class="set-card">
       <h2>الاشتراكات</h2>
       ${lib.playlists.map((p) => `<div class="pl-row ${p.id === lib.pl.id ? 'on' : ''}">
@@ -795,11 +1088,12 @@ function renderSettings() {
 
     <section class="set-card">
       <h2>حول</h2>
-      <div class="about"><svg><use href="#i-logo"/></svg><div><b>LiwaIPTV</b><small>الإصدار 1.0.0 · مشغّل فقط ولا يوفّر أي محتوى</small></div></div>
+      <div class="about"><span class="wordmark">LIWA</span><div><b>LiwaIPTV</b><small>الإصدار 1.1.0 · مشغّل فقط ولا يوفّر أي محتوى</small></div></div>
       <button class="set-row" data-clear><span>مسح ذاكرة الصور والأدلة المؤقتة</span>${icon('trash')}</button>
     </section>
   </div>`;
 
+  $('[data-switch]', v).addEventListener('click', () => showProfiles());
   v.querySelectorAll('[data-set]').forEach((b) => b.addEventListener('click', () => {
     settings[b.dataset.set] = b.dataset.val; saveSettings();
     if (b.dataset.set === 'liveFormat') { lib.pl.liveFormat = b.dataset.val; lib.savePlaylists(); }
@@ -847,9 +1141,10 @@ function renderSettings() {
       await lib.removePlaylist(id);
       if (!lib.playlists.length) { lib.data = null; showWelcome(); $('#addCancel').hidden = true; return; }
       if (!lib.data) { await activate(lib.pl.id); return; }
+      paintAvatars();
       renderSettings();
     }
   }));
 }
 
-boot().catch((e) => { console.error(e); showWelcome(); showAddError(e.message); });
+boot().catch((e) => { console.error(e); hideSplash(); showWelcome(); showAddError(e.message); });
