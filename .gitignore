@@ -10,3 +10,4 @@ mobile/*.apk
 velora/node_modules/
 velora/android/
 velora/*.apk
+download/*.idsig
