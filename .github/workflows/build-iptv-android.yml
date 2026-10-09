@@ -1,0 +1,104 @@
+name: بناء LiwaIPTV للأندرويد (APK)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "وسم الإصدار الذي سيُنشر (مثال iptv-v1.0.0)"
+        required: true
+        default: "iptv-v1.0.0"
+  push:
+    tags:
+      - "iptv-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: iptv
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - name: تثبيت الاعتماديات
+        run: npm install --no-audit --no-fund
+
+      - name: الاختبار الذاتي
+        run: node scripts/selftest.mjs
+
+      - name: توليد مشروع أندرويد
+        run: npx cap add android
+
+      - name: مزامنة ملفات الويب
+        run: npx cap sync android
+
+      - name: تهيئة المشروع (الوسيط، أندرويد TV، صورة داخل صورة)
+        run: node scripts/patch-android.mjs android
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+
+      - name: توليد الأيقونات ولافتة التلفاز
+        run: python3 scripts/make-icons.py android/app/src/main/res
+
+      - name: بناء APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: توقيع APK
+        run: |
+          set -e
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          UNSIGNED=$(find android/app/build/outputs/apk/release -name "*.apk" | head -1)
+          if [ -n "${{ secrets.IPTV_KEYSTORE_B64 }}" ]; then
+            echo "${{ secrets.IPTV_KEYSTORE_B64 }}" | base64 -d > /tmp/ks.jks
+            KS=/tmp/ks.jks
+            KS_PASS="${{ secrets.IPTV_KEYSTORE_PASSWORD }}"
+            KS_ALIAS="${{ secrets.IPTV_KEY_ALIAS }}"
+          else
+            KS=signing/liwaiptv.jks
+            KS_PASS=liwaiptv
+            KS_ALIAS=liwaiptv
+          fi
+          "$BT/zipalign" -p -f 4 "$UNSIGNED" aligned.apk
+          "$BT/apksigner" sign --ks "$KS" --ks-pass "pass:$KS_PASS" --ks-key-alias "$KS_ALIAS" \
+            --key-pass "pass:$KS_PASS" --out LiwaIPTV.apk aligned.apk
+          "$BT/apksigner" verify --print-certs LiwaIPTV.apk
+          ls -la LiwaIPTV.apk
+
+      - name: رفع الـ APK كمُخرَج
+        uses: actions/upload-artifact@v4
+        with:
+          name: LiwaIPTV-APK
+          path: iptv/LiwaIPTV.apk
+          if-no-files-found: error
+
+      - name: نشر الإصدار
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: LiwaIPTV للأندرويد ${{ github.event.inputs.tag || github.ref_name }}
+          files: iptv/LiwaIPTV.apk
+          body: |
+            ## LiwaIPTV — مشغّل اشتراكات IPTV للهاتف وأندرويد TV
+
+            نزّل `LiwaIPTV.apk` وثبّته (سيطلب السماح بالتثبيت من مصدر غير معروف).
+            يدعم Xtream Codes وقوائم M3U/M3U8 (رابط أو ملف) وبوابات MAC (Stalker).
+
+            التطبيق مشغّل فقط ولا يوفّر أي محتوى أو اشتراكات.

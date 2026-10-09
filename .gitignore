@@ -7,3 +7,8 @@ mobile/node_modules/
 mobile/android/
 mobile/*.apk
 !download/LiwaMusic.apk
+
+# LiwaIPTV
+iptv/android/
+iptv/*.apk
+!download/LiwaIPTV.apk

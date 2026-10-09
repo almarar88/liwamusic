@@ -1,0 +1,23 @@
+{
+  "appId": "com.liwaiptv.app",
+  "appName": "LiwaIPTV",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#07080d"
+  },
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#07080d",
+      "overlaysWebView": false
+    }
+  }
+}

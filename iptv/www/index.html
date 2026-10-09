@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+<meta name="color-scheme" content="dark" />
+<meta name="theme-color" content="#07080d" />
+<title>LiwaIPTV</title>
+<link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="g-brand" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2ee6d6"/><stop offset="1" stop-color="#7c5cff"/></linearGradient>
+  </defs>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></symbol>
+  <symbol id="i-live" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="13" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="m8 2.5 4 3.5 4-3.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-movie" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M7 3v18M17 3v18M3 8h4M3 12h4M3 16h4M17 8h4M17 12h4M17 16h4" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-series" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M6 4h12M8.5 1.5h7" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="m10 11 5 3-5 3z" fill="currentColor"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="m15.5 15.5 5 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.5-2-3.4-2.3.9a7.6 7.6 0 0 0-2.6-1.5L14 2.6h-4l-.5 2.4a7.6 7.6 0 0 0-2.6 1.5l-2.3-.9-2 3.4 2 1.5a7.6 7.6 0 0 0 0 3l-2 1.5 2 3.4 2.3-.9a7.6 7.6 0 0 0 2.6 1.5l.5 2.4h4l.5-2.4a7.6 7.6 0 0 0 2.6-1.5l2.3.9 2-3.4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.4-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z" fill="currentColor"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="5.5" y="4" width="4.5" height="16" rx="1.2" fill="currentColor"/><rect x="14" y="4" width="4.5" height="16" rx="1.2" fill="currentColor"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-fwd" viewBox="0 0 24 24"><path d="M19 12a7 7 0 1 1-2.05-4.95M19 4v4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text x="12" y="15.2" font-size="7.5" font-weight="700" text-anchor="middle" fill="currentColor" font-family="system-ui">10</text></symbol>
+  <symbol id="i-rew" viewBox="0 0 24 24"><path d="M5 12a7 7 0 1 0 2.05-4.95M5 4v4h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text x="12" y="15.2" font-size="7.5" font-weight="700" text-anchor="middle" fill="currentColor" font-family="system-ui">10</text></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20.5s-8-4.8-8-11A4.6 4.6 0 0 1 12 6.6a4.6 4.6 0 0 1 8 2.9c0 6.2-8 11-8 11Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></symbol>
+  <symbol id="i-heart-f" viewBox="0 0 24 24"><path d="M12 20.5s-8-4.8-8-11A4.6 4.6 0 0 1 12 6.6a4.6 4.6 0 0 1 8 2.9c0 6.2-8 11-8 11Z" fill="currentColor"/></symbol>
+  <symbol id="i-cc" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M10.5 10.2a2.4 2.4 0 1 0 0 3.6M17 10.2a2.4 2.4 0 1 0 0 3.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-audio" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 19V5L7.5 9.5z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.3 5.7a9 9 0 0 1 0 12.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+  <symbol id="i-pip" viewBox="0 0 24 24"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.9"/><rect x="11.5" y="11" width="7.5" height="6" rx="1.2" fill="currentColor"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-aspect" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M6 9.5V8h2.5M18 14.5V16h-2.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="4" cy="6" r="1.4" fill="currentColor"/><circle cx="4" cy="12" r="1.4" fill="currentColor"/><circle cx="4" cy="18" r="1.4" fill="currentColor"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M5 5.5v13l9.5-6.5z" fill="currentColor"/><rect x="16" y="5" width="2.8" height="14" rx="1" fill="currentColor"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path d="M19 5.5v13L9.5 12z" fill="currentColor"/><rect x="5.2" y="5" width="2.8" height="14" rx="1" fill="currentColor"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="1.9"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.6-4.5M4 4v4h4M4 13a8 8 0 0 0 14.6 4.5M20 20v-4h-4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z" fill="currentColor"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-speed" viewBox="0 0 24 24"><path d="M4.2 17a8.5 8.5 0 1 1 15.6 0" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="m12 14 4.5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M12 11v5.5M12 7.6v.1" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-yt" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="4" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="m10 9 5 3-5 3z" fill="currentColor"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-archive" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v4.5h4.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.9"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.9"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.9"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.9"/></symbol>
+  <symbol id="i-logo" viewBox="0 0 48 48"><rect x="3" y="9" width="42" height="30" rx="8" fill="url(#g-brand)"/><path d="m19.5 17.5 11 6.5-11 6.5z" fill="#fff"/><path d="M17 4.5 24 9l7-4.5" fill="none" stroke="url(#g-brand)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<!-- ————————————————— إضافة اشتراك (أول تشغيل) -->
+<section id="welcome" hidden>
+  <div class="welcome">
+    <div class="brand-big"><svg><use href="#i-logo"/></svg><h1>Liwa<span>IPTV</span></h1></div>
+    <p class="muted">أضف اشتراكك وشاهد القنوات والأفلام والمسلسلات بصورها وتصنيفاتها، بمشغّل متطور وترجمة.</p>
+    <div class="card add-form" id="addForm">
+      <div class="seg" role="tablist" id="addType">
+        <button class="on" data-type="xtream" role="tab">Xtream Codes</button>
+        <button data-type="m3u" role="tab">رابط / ملف M3U</button>
+        <button data-type="stalker" role="tab">بوابة MAC</button>
+      </div>
+      <label class="fld"><span>اسم الاشتراك (اختياري)</span><input name="name" type="text" placeholder="مثال: اشتراكي" autocomplete="off" /></label>
+      <div data-for="xtream">
+        <label class="fld"><span>رابط الخادم</span><input name="server" type="url" inputmode="url" placeholder="http://example.com:8080" autocomplete="off" dir="ltr" /></label>
+        <div class="row2">
+          <label class="fld"><span>اسم المستخدم</span><input name="username" type="text" autocomplete="off" autocapitalize="off" dir="ltr" /></label>
+          <label class="fld"><span>كلمة المرور</span><input name="password" type="password" autocomplete="off" dir="ltr" /></label>
+        </div>
+      </div>
+      <div data-for="m3u" hidden>
+        <label class="fld"><span>رابط القائمة (m3u / m3u8 / get.php)</span><input name="url" type="url" inputmode="url" placeholder="http://…/get.php?username=…&password=…&type=m3u_plus" autocomplete="off" dir="ltr" /></label>
+        <div class="or"><span>أو</span></div>
+        <label class="btn ghost file"><input name="file" type="file" accept=".m3u,.m3u8,.txt,audio/x-mpegurl,application/x-mpegurl,application/vnd.apple.mpegurl,text/plain" /> <svg><use href="#i-plus"/></svg> اختر ملف M3U من الجهاز</label>
+        <div class="muted sm" id="fileName"></div>
+        <label class="fld"><span>رابط دليل البرامج EPG (اختياري)</span><input name="epgUrl" type="url" inputmode="url" placeholder="http://…/xmltv.xml" autocomplete="off" dir="ltr" /></label>
+      </div>
+      <div data-for="stalker" hidden>
+        <label class="fld"><span>رابط البوابة</span><input name="portal" type="url" inputmode="url" placeholder="http://portal.example.com:8080/c/" autocomplete="off" dir="ltr" /></label>
+        <label class="fld"><span>عنوان MAC</span><input name="mac" type="text" placeholder="00:1A:79:XX:XX:XX" autocomplete="off" autocapitalize="characters" dir="ltr" /></label>
+      </div>
+      <div class="form-err" id="addErr" hidden></div>
+      <div class="form-progress" id="addProgress" hidden><i class="spin"></i><span></span></div>
+      <button class="btn primary big" id="addSubmit">اتصال وتحميل</button>
+      <button class="btn ghost" id="addCancel" hidden>إلغاء</button>
+    </div>
+    <p class="muted xs center">بياناتك تبقى على جهازك فقط. التطبيق مشغّل ولا يوفّر أي محتوى أو اشتراكات.</p>
+  </div>
+</section>
+
+<!-- ————————————————— التطبيق -->
+<div id="app" hidden>
+  <nav id="nav">
+    <div class="nav-brand"><svg><use href="#i-logo"/></svg><b>Liwa<span>IPTV</span></b></div>
+    <button data-go="home"><svg><use href="#i-home"/></svg><span>الرئيسية</span></button>
+    <button data-go="live"><svg><use href="#i-live"/></svg><span>مباشر</span></button>
+    <button data-go="movie"><svg><use href="#i-movie"/></svg><span>أفلام</span></button>
+    <button data-go="series"><svg><use href="#i-series"/></svg><span>مسلسلات</span></button>
+    <button data-go="search"><svg><use href="#i-search"/></svg><span>بحث</span></button>
+    <button data-go="settings" class="nav-settings"><svg><use href="#i-gear"/></svg><span>الإعدادات</span></button>
+  </nav>
+  <header id="top">
+    <button id="plSwitch" class="pl-switch"><i class="dot"></i><span id="plName">—</span><svg><use href="#i-down"/></svg></button>
+    <span class="grow"></span>
+    <span id="clock" class="clock"></span>
+    <button class="icon-btn" data-go="search" aria-label="بحث"><svg><use href="#i-search"/></svg></button>
+    <button class="icon-btn" data-go="settings" aria-label="الإعدادات"><svg><use href="#i-gear"/></svg></button>
+  </header>
+  <main id="view"></main>
+</div>
+
+<!-- ————————————————— صفحة التفاصيل (فيلم/مسلسل) -->
+<section id="detail" class="page" hidden></section>
+
+<!-- ————————————————— المشغل -->
+<div id="player" hidden>
+  <video id="video" playsinline webkit-playsinline preload="auto"></video>
+  <div class="p-subs" id="pSubs"></div>
+  <div class="p-gesture" id="pGesture" aria-hidden="true"></div>
+  <div class="p-hud" id="pHud" hidden><svg><use href="#i-sun"/></svg><div class="bar"><i></i></div><b></b></div>
+  <div class="p-seekhint" id="pSeekHint" hidden></div>
+  <div class="p-status" id="pStatus" hidden><i class="spin"></i><span></span></div>
+  <div class="p-zap" id="pZap" hidden></div>
+  <div class="p-error" id="pError" hidden>
+    <b>تعذّر التشغيل</b><p></p>
+    <div class="row"><button class="btn primary" data-p="retry">إعادة المحاولة</button><button class="btn ghost" data-p="external"><svg><use href="#i-ext"/></svg> مشغل خارجي</button></div>
+  </div>
+  <div class="p-ui" id="pUi">
+    <div class="p-top">
+      <button class="p-btn" data-p="close" aria-label="رجوع"><svg><use href="#i-back"/></svg></button>
+      <img class="p-logo" id="pLogo" alt="" hidden />
+      <div class="p-title"><b id="pTitle"></b><span id="pSub"></span></div>
+      <span class="badge live-badge" id="pLiveBadge" hidden>مباشر</span>
+      <span class="badge" id="pRes" hidden></span>
+      <button class="p-btn" data-p="fav" aria-label="مفضلة"><svg><use href="#i-heart"/></svg></button>
+      <button class="p-btn" data-p="pip" aria-label="صورة داخل صورة"><svg><use href="#i-pip"/></svg></button>
+      <button class="p-btn" data-p="external" aria-label="مشغل خارجي"><svg><use href="#i-ext"/></svg></button>
+    </div>
+    <div class="p-mid">
+      <button class="p-btn lg" data-p="prev" aria-label="السابق"><svg><use href="#i-prev"/></svg></button>
+      <button class="p-btn lg" data-p="rew" aria-label="رجوع 10 ثوان"><svg><use href="#i-rew"/></svg></button>
+      <button class="p-btn xl" data-p="toggle" aria-label="تشغيل/إيقاف"><svg><use href="#i-pause"/></svg></button>
+      <button class="p-btn lg" data-p="fwd" aria-label="تقديم 10 ثوان"><svg><use href="#i-fwd"/></svg></button>
+      <button class="p-btn lg" data-p="next" aria-label="التالي"><svg><use href="#i-next"/></svg></button>
+    </div>
+    <div class="p-bottom">
+      <div class="p-epg" id="pEpg" hidden><div class="now"><b></b><span></span></div><div class="prog"><i></i></div><div class="next"></div></div>
+      <div class="p-seek" id="pSeek">
+        <span class="t" id="pCur">0:00</span>
+        <div class="track" id="pTrack" tabindex="0" role="slider" aria-label="موضع التشغيل"><i class="buf"></i><i class="fill"></i><i class="knob"></i><span class="tip"></span></div>
+        <span class="t" id="pDur">0:00</span>
+      </div>
+      <div class="p-tools">
+        <button class="p-chip" data-p="channels"><svg><use href="#i-list"/></svg><span>القنوات</span></button>
+        <button class="p-chip" data-p="episodes"><svg><use href="#i-series"/></svg><span>الحلقات</span></button>
+        <button class="p-chip" data-p="archive"><svg><use href="#i-archive"/></svg><span>الأرشيف</span></button>
+        <button class="p-chip" data-p="subs"><svg><use href="#i-cc"/></svg><span>الترجمة</span></button>
+        <button class="p-chip" data-p="audio"><svg><use href="#i-audio"/></svg><span>الصوت والجودة</span></button>
+        <button class="p-chip" data-p="aspect"><svg><use href="#i-aspect"/></svg><span id="pAspectLbl">ملاءمة</span></button>
+        <button class="p-chip" data-p="speed"><svg><use href="#i-speed"/></svg><span id="pSpeedLbl">1×</span></button>
+        <button class="p-chip" data-p="more"><svg><use href="#i-gear"/></svg><span>المزيد</span></button>
+      </div>
+    </div>
+  </div>
+  <div class="p-nextup" id="pNextUp" hidden>
+    <img alt="" /><div><span class="muted sm">الحلقة التالية بعد <b>10</b></span><b class="t"></b></div>
+    <button class="btn primary" data-p="nextNow">تشغيل الآن</button><button class="btn ghost" data-p="nextCancel">إلغاء</button>
+  </div>
+  <aside class="p-panel" id="pPanel" hidden><div class="p-panel-head"><b></b><button class="p-btn" data-p="panelClose" aria-label="إغلاق"><svg><use href="#i-close"/></svg></button></div><div class="p-panel-body"></div></aside>
+</div>
+
+<!-- ————————————————— نافذة عامة -->
+<div id="sheet" hidden><div class="sheet-card" role="dialog" aria-modal="true"></div></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="subFile" accept=".srt,.vtt,.ass,.ssa,.sub,text/vtt,application/x-subrip" hidden />
+
+<script src="vendor/hls.min.js"></script>
+<script src="vendor/mpegts.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

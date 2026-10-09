@@ -12,6 +12,15 @@
 
 ---
 
+## 📺 جديد: LiwaIPTV
+
+تطبيق أندرويد شقيق لتشغيل اشتراكات IPTV: Xtream Codes وقوائم M3U وبوابات MAC، ويعمل على الهاتف والتلفاز.
+يعرض القنوات والأفلام والمسلسلات بصورها مصنّفةً، ومعه دليل برامج وأرشيف ومشغّل متقدم بترجمة.
+التفاصيل في **[iptv/README.md](iptv/README.md)** ·
+**[تحميل LiwaIPTV.apk](download/LiwaIPTV.apk)**
+
+---
+
 ## ⬇️ التحميل
 
 [![آخر إصدار](https://img.shields.io/github/v/release/almarar88/liwamusic?label=%D8%A2%D8%AE%D8%B1%20%D8%A5%D8%B5%D8%AF%D8%A7%D8%B1&color=7c5cff)](https://github.com/almarar88/liwamusic/releases/latest)
